@@ -1,0 +1,7 @@
+node_modules
+dist
+out
+resources/icon.png
+.DS_Store
+.eslintcache
+*.log*

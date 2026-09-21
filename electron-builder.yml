@@ -1,0 +1,40 @@
+appId: com.tableboy.studio
+productName: TableBoy Studio
+directories:
+  buildResources: build
+extraResources:
+  - from: build/icon.png
+    to: icon.png
+files:
+  - '!**/.vscode/*'
+  - '!src/*'
+  - '!electron.vite.config.{js,ts,mjs,cjs}'
+  - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
+  - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
+asarUnpack:
+  - resources/**
+win:
+  executableName: TableBoyStudio
+  icon: icon.ico
+nsis:
+  artifactName: ${productName}-Setup-${version}.${ext}
+  shortcutName: ${productName}
+  uninstallDisplayName: ${productName}
+  createDesktopShortcut: always
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+mac:
+  entitlementsInherit: build/entitlements.mac.plist
+  notarize: false
+dmg:
+  artifactName: ${name}-${version}.${ext}
+linux:
+  target:
+    - AppImage
+    - snap
+    - deb
+  maintainer: electronjs.org
+  category: Utility
+appImage:
+  artifactName: ${name}-${version}.${ext}
+npmRebuild: false
