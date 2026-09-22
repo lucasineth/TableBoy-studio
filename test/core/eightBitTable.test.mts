@@ -105,5 +105,17 @@ test('sequential application rejects overflow and reports occupied cells', () =>
   )
   assert.equal(replacement.ok, true)
   if (!replacement.ok) return
-  assert.deepEqual(replacement.overwrittenBytes, [0x41, 0x45])
+  assert.deepEqual(replacement.overwrittenAddresses, [0x41, 0x45])
+})
+
+test('sequential categories preserve 16-bit addresses', () => {
+  const result = applyCharacterSequence([], 0x8140, numbersCategory.characters, '16-bit')
+
+  assert.equal(result.ok, true)
+  if (!result.ok) return
+
+  assert.deepEqual(result.entries.at(0), { key: [0x81, 0x40], value: '0' })
+  assert.deepEqual(result.entries.at(-1), { key: [0x81, 0x49], value: '9' })
+  assert.equal(result.startAddress, 0x8140)
+  assert.equal(result.endAddress, 0x8149)
 })

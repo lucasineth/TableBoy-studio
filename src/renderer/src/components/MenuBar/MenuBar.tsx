@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import type { TableMode } from '../../../../core/table/TableMode.ts'
 
 type MenuId = 'file' | 'edit' | 'table' | 'encoding' | 'tools' | 'view' | 'help'
 
@@ -10,6 +11,7 @@ interface MenuBarProps {
   hasEntries: boolean
   inspectorVisible: boolean
   statusBarVisible: boolean
+  mode: TableMode
   onNew: () => void
   onOpen: () => void
   onSave: () => void
@@ -52,6 +54,7 @@ export function MenuBar({
   hasEntries,
   inspectorVisible,
   statusBarVisible,
+  mode,
   onNew,
   onOpen,
   onSave,
@@ -130,14 +133,19 @@ export function MenuBar({
       items: [
         { label: 'Validate Table', onSelect: onValidateTable },
         { label: 'Table Statistics', onSelect: onShowStatistics },
-        { label: '8-bit Mode (00-FF)', checked: true, disabled: true, separatorBefore: true }
+        {
+          label: `${mode} Mode (${mode === '8-bit' ? '00-FF' : '0000-FFFF'})`,
+          checked: true,
+          disabled: true,
+          separatorBefore: true
+        }
       ]
     },
     {
       id: 'encoding',
       label: 'Encoding',
       items: [
-        { label: 'Custom 8-bit', checked: true, disabled: true },
+        { label: `Custom ${mode}`, checked: true, disabled: true },
         { label: 'UTF-8 .tbl Files', checked: true, disabled: true },
         { label: 'ANSI / OEM', disabled: true, separatorBefore: true },
         { label: 'Shift-JIS', disabled: true }

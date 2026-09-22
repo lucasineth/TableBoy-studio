@@ -1,7 +1,12 @@
-import { toByteHex } from '../../../../core/table/EightBitTable.ts'
+import {
+  addressCountForMode,
+  formatTableAddress,
+  type TableMode
+} from '../../../../core/table/index.ts'
 
 interface StatusBarProps {
-  selectedByte: number
+  selectedAddress: number
+  mode: TableMode
   usedEntries: number
   modified: boolean
   validationValid: boolean
@@ -9,7 +14,8 @@ interface StatusBarProps {
 }
 
 export function StatusBar({
-  selectedByte,
+  selectedAddress,
+  mode,
   usedEntries,
   modified,
   validationValid,
@@ -18,10 +24,10 @@ export function StatusBar({
   return (
     <footer className="status-bar">
       <span className="status-bar__file">{`${fileName}${modified ? ' *' : ''}`}</span>
-      <span>Selected: {toByteHex(selectedByte)}</span>
+      <span>Selected: {formatTableAddress(selectedAddress, mode)}</span>
       <span>Used: {usedEntries}</span>
-      <span>Free: {256 - usedEntries}</span>
-      <span>Encoding: Custom 8-bit</span>
+      <span>Free: {addressCountForMode(mode) - usedEntries}</span>
+      <span>Encoding: Custom {mode}</span>
       <span className={validationValid ? 'status-bar__valid' : 'status-bar__error'}>
         {validationValid ? 'No errors' : 'Validation errors'}
       </span>

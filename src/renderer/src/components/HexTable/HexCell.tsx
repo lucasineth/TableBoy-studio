@@ -1,34 +1,36 @@
 import { memo, type ChangeEvent, type MouseEvent } from 'react'
 
-import { toByteHex } from '../../../../core/table/EightBitTable.ts'
+import { formatTableAddress, type TableMode } from '../../../../core/table/index.ts'
 
 interface HexCellProps {
-  byte: number
+  address: number
+  mode: TableMode
   selected: boolean
   value: string
-  onSelect: (byte: number) => void
-  onValueChange: (byte: number, value: string) => void
-  onContextMenu: (byte: number, x: number, y: number) => void
+  onSelect: (address: number) => void
+  onValueChange: (address: number, value: string) => void
+  onContextMenu: (address: number, x: number, y: number) => void
 }
 
 export const HexCell = memo(function HexCell({
-  byte,
+  address,
+  mode,
   selected,
   value,
   onSelect,
   onValueChange,
   onContextMenu
 }: HexCellProps): React.JSX.Element {
-  const hex = toByteHex(byte)
+  const hex = formatTableAddress(address, mode)
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>): void => {
-    onValueChange(byte, event.target.value)
+    onValueChange(address, event.target.value)
   }
 
   const handleContextMenu = (event: MouseEvent<HTMLInputElement>): void => {
     event.preventDefault()
-    onSelect(byte)
-    onContextMenu(byte, event.clientX, event.clientY)
+    onSelect(address)
+    onContextMenu(address, event.clientX, event.clientY)
   }
 
   return (
@@ -36,14 +38,14 @@ export const HexCell = memo(function HexCell({
       className={`hex-cell${selected ? ' hex-cell--selected' : ''}${value ? ' hex-cell--used' : ''}`}
     >
       <input
-        data-byte={hex}
+        data-address={hex}
         value={value}
-        aria-label={`Byte ${hex}`}
+        aria-label={`Address ${hex}`}
         title={`${hex}: ${value || 'Unmapped'}`}
         spellCheck={false}
         onChange={handleChange}
-        onClick={() => onSelect(byte)}
-        onFocus={() => onSelect(byte)}
+        onClick={() => onSelect(address)}
+        onFocus={() => onSelect(address)}
         onContextMenu={handleContextMenu}
       />
     </td>

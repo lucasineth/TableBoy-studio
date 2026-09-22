@@ -1,7 +1,7 @@
 {
   "name": "tableboy-studio",
-  "version": "1.0.0",
-  "description": "Modern 8-bit character table editor for ROM hacking",
+  "version": "1.1.0",
+  "description": "Modern 8-bit and 16-bit character table editor for ROM hacking",
   "main": "./out/main/index.js",
   "author": "Lucas",
   "scripts": {

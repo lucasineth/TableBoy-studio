@@ -1,18 +1,15 @@
-import {
-  MAX_8_BIT_VALUE,
-  assertByte,
-  createEightBitEntryMap,
-  setEightBitValue
-} from '../table/EightBitTable.ts'
+import { assertTableAddress } from '../table/TableAddress.ts'
+import { createTableEntryMap, setTableValue } from '../table/TableDocument.ts'
 import type { TableEntry } from '../table/TableEntry.ts'
+import { maxAddressForMode, type TableMode } from '../table/TableMode.ts'
 import type { CharacterOption } from './CharacterCategory.ts'
 
 export interface AppliedCharacterSequence {
   ok: true
   entries: TableEntry[]
-  startByte: number
-  endByte: number
-  overwrittenBytes: number[]
+  startAddress: number
+  endAddress: number
+  overwrittenAddresses: number[]
 }
 
 export interface CharacterSequenceOverflow {
@@ -26,12 +23,13 @@ export type ApplyCharacterSequenceResult = AppliedCharacterSequence | CharacterS
 
 export function applyCharacterSequence(
   table: readonly TableEntry[],
-  startByte: number,
-  characters: readonly CharacterOption[]
+  startAddress: number,
+  characters: readonly CharacterOption[],
+  mode: TableMode = '8-bit'
 ): ApplyCharacterSequenceResult {
-  assertByte(startByte)
+  assertTableAddress(startAddress, mode)
 
-  const availableCells = MAX_8_BIT_VALUE - startByte + 1
+  const availableCells = maxAddressForMode(mode) - startAddress + 1
   if (characters.length > availableCells) {
     return {
       ok: false,
@@ -41,21 +39,21 @@ export function applyCharacterSequence(
     }
   }
 
-  const entryMap = createEightBitEntryMap(table)
-  const overwrittenBytes: number[] = []
+  const entryMap = createTableEntryMap(table, mode)
+  const overwrittenAddresses: number[] = []
   let entries = [...table]
 
   characters.forEach((character, index) => {
-    const targetByte = startByte + index
-    if (entryMap.has(targetByte)) overwrittenBytes.push(targetByte)
-    entries = setEightBitValue(entries, targetByte, character.value)
+    const targetAddress = startAddress + index
+    if (entryMap.has(targetAddress)) overwrittenAddresses.push(targetAddress)
+    entries = setTableValue(entries, targetAddress, character.value, mode)
   })
 
   return {
     ok: true,
     entries,
-    startByte,
-    endByte: startByte + Math.max(0, characters.length - 1),
-    overwrittenBytes
+    startAddress,
+    endAddress: startAddress + Math.max(0, characters.length - 1),
+    overwrittenAddresses
   }
 }

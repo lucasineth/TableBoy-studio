@@ -1,7 +1,9 @@
 import {
+  createTableDocument,
   TableParser,
   TableValidator,
   TableWriter,
+  type TableDocument,
   type TableEntry,
   type TableParseError,
   type TableValidationResult
@@ -13,8 +15,8 @@ const parser = new TableParser()
 const writer = new TableWriter()
 const validator = new TableValidator()
 
-export interface TableDocumentResult {
-  entries: TableEntry[]
+export interface ParsedTableDocumentResult {
+  document: TableDocument | null
   errors: TableDocumentError[]
 }
 
@@ -24,33 +26,27 @@ export interface TableDocumentError {
   message: string
 }
 
-export function createSampleTable(): TableEntry[] {
-  return cloneEntries(parser.parse(SAMPLE_TABLE).entries)
+export function createSampleDocument(): TableDocument {
+  const entries = parser.parse(SAMPLE_TABLE).entries
+  return { mode: '8-bit', entries: cloneEntries(entries) }
 }
 
-export function parseEightBitDocument(source: string): TableDocumentResult {
+export function parseTableDocument(source: string): ParsedTableDocumentResult {
   const parsed = parser.parse(source)
   const errors: TableDocumentError[] = parsed.errors.map(toDocumentError)
-  const unsupportedEntries = parsed.entries.filter((entry) => entry.key.length !== 1)
+  if (errors.length > 0) return { document: null, errors }
 
-  if (unsupportedEntries.length > 0) {
-    errors.push({
-      message: `${unsupportedEntries.length} variable-width entr${unsupportedEntries.length === 1 ? 'y is' : 'ies are'} not supported in 8-bit mode.`
-    })
-  }
-
-  return {
-    entries: cloneEntries(parsed.entries.filter((entry) => entry.key.length === 1)),
-    errors
-  }
+  const detection = createTableDocument(parsed.entries)
+  errors.push(...detection.issues.map((issue) => ({ message: issue.message })))
+  return { document: detection.document, errors }
 }
 
 export function validateTableDocument(entries: readonly TableEntry[]): TableValidationResult {
   return validator.validate(entries)
 }
 
-export function serializeTableDocument(entries: readonly TableEntry[]): string {
-  return writer.write(entries)
+export function serializeTableDocument(document: TableDocument): string {
+  return writer.writeDocument(document)
 }
 
 export function formatTableDocumentErrors(errors: readonly TableDocumentError[]): string {

@@ -1,3 +1,4 @@
+import { createTableDocument, type TableDocument } from './TableDocument.ts'
 import type { TableEntry } from './TableEntry.ts'
 import {
   TableValidator,
@@ -28,5 +29,19 @@ export class TableWriter {
         return entry.comment === undefined ? mapping : `${mapping} # ${entry.comment}`
       })
       .join('\n')
+  }
+
+  writeDocument(document: TableDocument): string {
+    const detection = createTableDocument(document.entries)
+    const detectedMode = detection.document?.mode
+
+    if (
+      detection.issues.length > 0 ||
+      (document.entries.length > 0 && detectedMode !== document.mode)
+    ) {
+      throw new TypeError('Table entries are incompatible with the document mode.')
+    }
+
+    return this.write(document.entries)
   }
 }

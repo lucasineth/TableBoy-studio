@@ -1,10 +1,13 @@
 import type { ChangeEvent } from 'react'
+import type { TableMode } from '../../../../core/table/TableMode.ts'
 
 interface ToolbarProps {
   canUndo: boolean
   canRedo: boolean
   query: string
   validationValid: boolean
+  mode: TableMode
+  canChangeMode: boolean
   onNew: () => void
   onOpen: () => void
   onSave: () => void
@@ -12,6 +15,7 @@ interface ToolbarProps {
   onUndo: () => void
   onRedo: () => void
   onQueryChange: (query: string) => void
+  onModeChange: (mode: TableMode) => void
 }
 
 type IconName = 'new' | 'open' | 'save' | 'search' | 'undo' | 'redo'
@@ -30,13 +34,16 @@ export function Toolbar({
   canRedo,
   query,
   validationValid,
+  mode,
+  canChangeMode,
   onNew,
   onOpen,
   onSave,
   onSearch,
   onUndo,
   onRedo,
-  onQueryChange
+  onQueryChange,
+  onModeChange
 }: ToolbarProps): React.JSX.Element {
   const handleQueryChange = (event: ChangeEvent<HTMLInputElement>): void => {
     onQueryChange(event.target.value)
@@ -91,8 +98,14 @@ export function Toolbar({
 
       <label className="mode-select">
         <span>Table Mode</span>
-        <select value="8-bit" aria-label="Table mode" onChange={() => undefined}>
+        <select
+          value={mode}
+          aria-label="Table mode"
+          disabled={!canChangeMode}
+          onChange={(event) => onModeChange(event.target.value as TableMode)}
+        >
           <option value="8-bit">8-bit</option>
+          <option value="16-bit">16-bit</option>
         </select>
       </label>
     </div>
