@@ -4,10 +4,11 @@ import type {
   CharacterCategory,
   CharacterOption
 } from '../../../../core/characters/CharacterCategory.ts'
-import { toByteHex } from '../../../../core/table/EightBitTable.ts'
+import { formatTableAddress, type TableMode } from '../../../../core/table/index.ts'
 
 interface HexContextMenuProps {
-  selectedByte: number
+  selectedAddress: number
+  mode: TableMode
   x: number
   y: number
   categories: readonly CharacterCategory[]
@@ -17,7 +18,8 @@ interface HexContextMenuProps {
 }
 
 export function HexContextMenu({
-  selectedByte,
+  selectedAddress,
+  mode,
   x,
   y,
   categories,
@@ -73,11 +75,13 @@ export function HexContextMenu({
       className={`context-menu${opensToLeft ? ' context-menu--picker-left' : ''}`}
       style={style}
       role="menu"
-      aria-label={`Character catalog for byte ${toByteHex(selectedByte)}`}
+      aria-label={`Character catalog for address ${formatTableAddress(selectedAddress, mode)}`}
       onContextMenu={(event) => event.preventDefault()}
       onPointerDown={(event) => event.stopPropagation()}
     >
-      <div className="context-menu__eyebrow">Choose character · {toByteHex(selectedByte)}</div>
+      <div className="context-menu__eyebrow">
+        Choose character · {formatTableAddress(selectedAddress, mode)}
+      </div>
       {categories.map((category) => (
         <button
           key={category.id}
@@ -89,7 +93,7 @@ export function HexContextMenu({
           }
           title={
             category.behavior === 'sequential'
-              ? `Fill sequentially from ${toByteHex(selectedByte)}`
+              ? `Fill sequentially from ${formatTableAddress(selectedAddress, mode)}`
               : undefined
           }
           onClick={() => handleCategoryClick(category)}

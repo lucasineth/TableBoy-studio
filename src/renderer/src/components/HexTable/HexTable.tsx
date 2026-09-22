@@ -1,19 +1,27 @@
-import { byteFromPosition, HEX_MATRIX_SIZE } from '../../../../core/table/EightBitTable.ts'
+import {
+  addressFromPagePosition,
+  HEX_MATRIX_SIZE,
+  type TableMode
+} from '../../../../core/table/index.ts'
 import { HexCell } from './HexCell.tsx'
 import { HexHeader } from './HexHeader.tsx'
 
 const NIBBLES = Array.from({ length: HEX_MATRIX_SIZE }, (_, index) => index)
 
 interface HexTableProps {
-  selectedByte: number
+  mode: TableMode
+  page: number
+  selectedAddress: number
   values: ReadonlyMap<number, string>
-  onSelect: (byte: number) => void
-  onValueChange: (byte: number, value: string) => void
-  onContextMenu: (byte: number, x: number, y: number) => void
+  onSelect: (address: number) => void
+  onValueChange: (address: number, value: string) => void
+  onContextMenu: (address: number, x: number, y: number) => void
 }
 
 export function HexTable({
-  selectedByte,
+  mode,
+  page,
+  selectedAddress,
   values,
   onSelect,
   onValueChange,
@@ -21,7 +29,7 @@ export function HexTable({
 }: HexTableProps): React.JSX.Element {
   return (
     <div className="hex-table-shell">
-      <table className="hex-table" aria-label="8-bit hexadecimal character table">
+      <table className="hex-table" aria-label={`${mode} hexadecimal character table`}>
         <thead>
           <tr>
             <HexHeader corner />
@@ -37,13 +45,14 @@ export function HexTable({
                 {row.toString(16).toUpperCase()}
               </th>
               {NIBBLES.map((column) => {
-                const byte = byteFromPosition(row, column)
+                const address = addressFromPagePosition(page, row, column, mode)
                 return (
                   <HexCell
-                    key={byte}
-                    byte={byte}
-                    value={values.get(byte) ?? ''}
-                    selected={selectedByte === byte}
+                    key={address}
+                    address={address}
+                    mode={mode}
+                    value={values.get(address) ?? ''}
+                    selected={selectedAddress === address}
                     onSelect={onSelect}
                     onValueChange={onValueChange}
                     onContextMenu={onContextMenu}

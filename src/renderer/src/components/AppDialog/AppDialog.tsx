@@ -64,8 +64,8 @@ export function AppDialog({ kind, onClose }: AppDialogProps): React.JSX.Element 
         ) : (
           <div className="about-content">
             <strong>TableBoy Studio</strong>
-            <span>Version 1.0.0</span>
-            <p>A modern 8-bit character table editor for ROM hacking.</p>
+            <span>Version 1.1.0</span>
+            <p>A modern 8-bit and 16-bit character table editor for ROM hacking.</p>
             <small>Electron · React · TypeScript · Vite</small>
             <div className="about-content__credits">
               <span>Developed by Lucas Ineth</span>

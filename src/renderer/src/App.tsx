@@ -8,7 +8,15 @@ import {
   type DragEvent
 } from 'react'
 
-import { createEightBitEntryMap, toByteHex } from '../../core/table/index.ts'
+import {
+  addressCountForMode,
+  addressFromKey,
+  createTableEntryMap,
+  formatTableAddress,
+  pageFromAddress,
+  pagesInDocument,
+  type TableMode
+} from '../../core/table/index.ts'
 import { characterCatalog } from '../../core/characters/CharacterCatalog.ts'
 import { applyCharacterSequence } from '../../core/characters/applyCharacterSequence.ts'
 import type { CharacterCategory, CharacterOption } from '../../core/characters/CharacterCategory.ts'
@@ -17,21 +25,21 @@ import { AppDialog, type AppDialogKind } from './components/AppDialog/AppDialog.
 import { CharacterInspector } from './components/CharacterInspector/CharacterInspector.tsx'
 import { HexContextMenu } from './components/ContextMenu/HexContextMenu.tsx'
 import { FileDropOverlay } from './components/FileDropOverlay/FileDropOverlay.tsx'
-import { HexTable } from './components/HexTable/HexTable.tsx'
 import { MenuBar } from './components/MenuBar/MenuBar.tsx'
 import { StatusBar } from './components/StatusBar/StatusBar.tsx'
+import { TableEditor } from './components/TableEditor/TableEditor.tsx'
 import { Toolbar } from './components/Toolbar/Toolbar.tsx'
 import {
-  createSampleTable,
+  createSampleDocument,
   formatTableDocumentErrors,
-  parseEightBitDocument,
+  parseTableDocument,
   serializeTableDocument,
   validateTableDocument
 } from './services/tableDocument.ts'
 import { createEditorState, editorReducer, isEditorModified } from './state/editorState.ts'
 
 interface ContextMenuState {
-  byte: number
+  address: number
   x: number
   y: number
 }
@@ -45,9 +53,10 @@ const NOTICE_DURATION_MS = 3000
 
 export default function App(): React.JSX.Element {
   const [state, dispatch] = useReducer(editorReducer, undefined, () =>
-    createEditorState(createSampleTable(), 'example.tbl')
+    createEditorState(createSampleDocument(), 'example.tbl')
   )
-  const [selectedByte, setSelectedByte] = useState(0xf1)
+  const [selectedAddress, setSelectedAddress] = useState(0xf1)
+  const [page, setPage] = useState(0)
   const [query, setQuery] = useState('')
   const [notice, setNotice] = useState<NoticeState | null>(null)
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
@@ -57,17 +66,24 @@ export default function App(): React.JSX.Element {
   const [dialog, setDialog] = useState<AppDialogKind | null>(null)
   const dragDepthRef = useRef(0)
 
-  const entryMap = useMemo(() => createEightBitEntryMap(state.entries), [state.entries])
+  const entryMap = useMemo(
+    () => createTableEntryMap(state.entries, state.mode),
+    [state.entries, state.mode]
+  )
   const values = useMemo(
-    () => new Map(Array.from(entryMap, ([byte, entry]) => [byte, entry.value])),
+    () => new Map(Array.from(entryMap, ([address, entry]) => [address, entry.value])),
     [entryMap]
   )
   const validation = useMemo(() => validateTableDocument(state.entries), [state.entries])
-  const selectedValue = values.get(selectedByte) ?? ''
+  const selectedValue = values.get(selectedAddress) ?? ''
+  const availablePages = useMemo(
+    () => pagesInDocument({ mode: state.mode, entries: state.entries }),
+    [state.entries, state.mode]
+  )
   const modified = isEditorModified(state)
 
-  const handleValueChange = useCallback((byte: number, value: string): void => {
-    dispatch({ type: 'SET_VALUE', byte, value })
+  const handleValueChange = useCallback((address: number, value: string): void => {
+    dispatch({ type: 'SET_VALUE', address, value })
     setNotice((current) => (current?.persistent ? current : null))
   }, [])
 
@@ -85,7 +101,7 @@ export default function App(): React.JSX.Element {
       }
 
       try {
-        const contents = serializeTableDocument(state.entries)
+        const contents = serializeTableDocument({ mode: state.mode, entries: state.entries })
         const result =
           forceSaveAs || state.filePath === null
             ? await tableFiles.saveAs({ suggestedName: state.fileName, contents })
@@ -108,7 +124,7 @@ export default function App(): React.JSX.Element {
         return false
       }
     },
-    [state.entries, state.fileName, state.filePath, validation.valid]
+    [state.entries, state.fileName, state.filePath, state.mode, validation.valid]
   )
 
   const confirmDocumentReplacement = useCallback(async (): Promise<boolean> => {
@@ -130,13 +146,14 @@ export default function App(): React.JSX.Element {
     if (!(await confirmDocumentReplacement())) return
 
     dispatch({ type: 'NEW' })
-    setSelectedByte(0)
+    setSelectedAddress(0)
+    setPage(0)
     setNotice({ message: 'Created a new empty 8-bit table.', persistent: false })
   }, [confirmDocumentReplacement])
 
   const loadOpenedTable = useCallback((opened: OpenedTableFile): boolean => {
-    const result = parseEightBitDocument(opened.contents)
-    if (result.errors.length > 0) {
+    const result = parseTableDocument(opened.contents)
+    if (result.errors.length > 0 || !result.document) {
       setNotice({
         message: `Could not open ${opened.fileName}:\n${formatTableDocumentErrors(result.errors)}`,
         persistent: true
@@ -146,11 +163,15 @@ export default function App(): React.JSX.Element {
 
     dispatch({
       type: 'LOAD',
-      entries: result.entries,
+      document: result.document,
       filePath: opened.filePath,
       fileName: opened.fileName
     })
-    setSelectedByte(result.entries[0]?.key[0] ?? 0)
+    const firstAddress = result.document.entries[0]
+      ? addressFromKey(result.document.entries[0].key, result.document.mode)
+      : 0
+    setSelectedAddress(firstAddress)
+    setPage(pageFromAddress(firstAddress, result.document.mode))
     setNotice({ message: `Opened ${opened.fileName}.`, persistent: false })
     return true
   }, [])
@@ -244,7 +265,9 @@ export default function App(): React.JSX.Element {
       return
     }
 
-    const hexadecimalMatch = /^(?:0x)?([0-9a-f]{2})$/i.exec(normalizedQuery)
+    const hexadecimalPattern =
+      state.mode === '8-bit' ? /^(?:0x)?([0-9a-f]{2})$/i : /^(?:0x)?([0-9a-f]{4})$/i
+    const hexadecimalMatch = hexadecimalPattern.exec(normalizedQuery)
     const match = hexadecimalMatch
       ? Number.parseInt(hexadecimalMatch[1], 16)
       : Array.from(values).find(([, value]) =>
@@ -256,12 +279,14 @@ export default function App(): React.JSX.Element {
       return
     }
 
-    setSelectedByte(match)
-    setNotice({ message: `Selected byte ${toByteHex(match)}.`, persistent: false })
+    setSelectedAddress(match)
+    setPage(pageFromAddress(match, state.mode))
+    const formattedAddress = formatTableAddress(match, state.mode)
+    setNotice({ message: `Selected address ${formattedAddress}.`, persistent: false })
     requestAnimationFrame(() => {
-      document.querySelector<HTMLInputElement>(`[data-byte="${toByteHex(match)}"]`)?.focus()
+      document.querySelector<HTMLInputElement>(`[data-address="${formattedAddress}"]`)?.focus()
     })
-  }, [query, values])
+  }, [query, state.mode, values])
 
   const handleUndo = useCallback((): void => {
     dispatch({ type: 'UNDO' })
@@ -272,8 +297,8 @@ export default function App(): React.JSX.Element {
   }, [])
 
   const handleClearSelected = useCallback((): void => {
-    handleValueChange(selectedByte, '')
-  }, [handleValueChange, selectedByte])
+    handleValueChange(selectedAddress, '')
+  }, [handleValueChange, selectedAddress])
 
   const handleClearTable = useCallback((): void => {
     if (state.entries.length === 0) return
@@ -287,7 +312,7 @@ export default function App(): React.JSX.Element {
   const handleValidateTable = useCallback((): void => {
     if (validation.valid) {
       setNotice({
-        message: `Table is valid. ${entryMap.size} mapped entries and ${256 - entryMap.size} free cells.`,
+        message: `Table is valid. ${entryMap.size} mapped entries and ${addressCountForMode(state.mode) - entryMap.size} free cells.`,
         persistent: false
       })
       return
@@ -297,16 +322,16 @@ export default function App(): React.JSX.Element {
       message: validation.issues.map((issue) => issue.message).join('\n'),
       persistent: true
     })
-  }, [entryMap.size, validation])
+  }, [entryMap.size, state.mode, validation])
 
   const handleShowStatistics = useCallback((): void => {
     setNotice({
-      message: `8-bit table · ${entryMap.size} used · ${256 - entryMap.size} free · ${Math.round(
-        (entryMap.size / 256) * 100
+      message: `${state.mode} table · ${entryMap.size} used · ${addressCountForMode(state.mode) - entryMap.size} free · ${Math.round(
+        (entryMap.size / addressCountForMode(state.mode)) * 100
       )}% occupied`,
       persistent: false
     })
-  }, [entryMap.size])
+  }, [entryMap.size, state.mode])
 
   const handleFocusSearch = useCallback((): void => {
     const searchInput = document.querySelector<HTMLInputElement>('.toolbar__search input')
@@ -316,21 +341,32 @@ export default function App(): React.JSX.Element {
 
   const handleOpenCharacterCatalog = useCallback((): void => {
     setContextMenu({
-      byte: selectedByte,
+      address: selectedAddress,
       x: Math.round(window.innerWidth / 2),
       y: 88
     })
-  }, [selectedByte])
+  }, [selectedAddress])
+
+  const handleModeChange = useCallback((mode: TableMode): void => {
+    dispatch({ type: 'SET_MODE', mode })
+    setSelectedAddress(0)
+    setPage(0)
+  }, [])
+
+  const handlePageChange = useCallback((nextPage: number): void => {
+    setPage(nextPage)
+    setSelectedAddress((currentAddress) => (nextPage << 8) | (currentAddress & 0xff))
+  }, [])
 
   const closeDialog = useCallback((): void => setDialog(null), [])
 
-  const handleCellContextMenu = useCallback((byte: number, x: number, y: number): void => {
-    setContextMenu({ byte, x, y })
+  const handleCellContextMenu = useCallback((address: number, x: number, y: number): void => {
+    setContextMenu({ address, x, y })
   }, [])
 
   const handleInspectorValueChange = useCallback(
-    (value: string): void => handleValueChange(selectedByte, value),
-    [handleValueChange, selectedByte]
+    (value: string): void => handleValueChange(selectedAddress, value),
+    [handleValueChange, selectedAddress]
   )
 
   const closeContextMenu = useCallback((): void => setContextMenu(null), [])
@@ -435,7 +471,7 @@ export default function App(): React.JSX.Element {
   const handleCharacterSelect = useCallback(
     (option: CharacterOption): void => {
       if (!contextMenu) return
-      dispatch({ type: 'SET_VALUE', byte: contextMenu.byte, value: option.value })
+      dispatch({ type: 'SET_VALUE', address: contextMenu.address, value: option.value })
       setContextMenu(null)
     },
     [contextMenu]
@@ -445,19 +481,24 @@ export default function App(): React.JSX.Element {
     (category: CharacterCategory): void => {
       if (!contextMenu) return
 
-      const result = applyCharacterSequence(state.entries, contextMenu.byte, category.characters)
+      const result = applyCharacterSequence(
+        state.entries,
+        contextMenu.address,
+        category.characters,
+        state.mode
+      )
 
       if (!result.ok) {
         setNotice({
-          message: `${category.label} requires ${result.requiredCells} cells, but only ${result.availableCells} remain before FF.`,
+          message: `${category.label} requires ${result.requiredCells} cells, but only ${result.availableCells} remain before ${state.mode === '8-bit' ? 'FF' : 'FFFF'}.`,
           persistent: false
         })
         setContextMenu(null)
         return
       }
 
-      if (result.overwrittenBytes.length > 0) {
-        const ranges = formatByteRanges(result.overwrittenBytes)
+      if (result.overwrittenAddresses.length > 0) {
+        const ranges = formatAddressRanges(result.overwrittenAddresses, state.mode)
         const confirmed = window.confirm(
           `As células ${ranges} já possuem valores.\nDeseja substituir as entradas existentes?`
         )
@@ -470,7 +511,7 @@ export default function App(): React.JSX.Element {
       dispatch({ type: 'APPLY_ENTRIES', entries: result.entries })
       setContextMenu(null)
     },
-    [contextMenu, state.entries]
+    [contextMenu, state.entries, state.mode]
   )
 
   return (
@@ -490,6 +531,7 @@ export default function App(): React.JSX.Element {
         hasEntries={entryMap.size > 0}
         inspectorVisible={inspectorVisible}
         statusBarVisible={statusBarVisible}
+        mode={state.mode}
         onNew={handleNew}
         onOpen={handleOpen}
         onSave={handleSave}
@@ -513,6 +555,8 @@ export default function App(): React.JSX.Element {
         canRedo={state.future.length > 0}
         query={query}
         validationValid={validation.valid}
+        mode={state.mode}
+        canChangeMode={state.entries.length === 0}
         onNew={handleNew}
         onOpen={handleOpen}
         onSave={handleSave}
@@ -520,6 +564,7 @@ export default function App(): React.JSX.Element {
         onUndo={handleUndo}
         onRedo={handleRedo}
         onQueryChange={setQuery}
+        onModeChange={handleModeChange}
       />
 
       {notice ? (
@@ -534,16 +579,21 @@ export default function App(): React.JSX.Element {
       <main
         className={`editor-workspace${inspectorVisible ? '' : ' editor-workspace--without-inspector'}`}
       >
-        <HexTable
-          selectedByte={selectedByte}
+        <TableEditor
+          mode={state.mode}
+          page={page}
+          availablePages={availablePages}
+          selectedAddress={selectedAddress}
           values={values}
-          onSelect={setSelectedByte}
+          onPageChange={handlePageChange}
+          onSelect={setSelectedAddress}
           onValueChange={handleValueChange}
           onContextMenu={handleCellContextMenu}
         />
         {inspectorVisible ? (
           <CharacterInspector
-            byte={selectedByte}
+            address={selectedAddress}
+            mode={state.mode}
             value={selectedValue}
             onValueChange={handleInspectorValueChange}
           />
@@ -552,7 +602,8 @@ export default function App(): React.JSX.Element {
 
       {statusBarVisible ? (
         <StatusBar
-          selectedByte={selectedByte}
+          selectedAddress={selectedAddress}
+          mode={state.mode}
           usedEntries={entryMap.size}
           modified={modified}
           validationValid={validation.valid}
@@ -564,7 +615,8 @@ export default function App(): React.JSX.Element {
         <HexContextMenu
           x={contextMenu.x}
           y={contextMenu.y}
-          selectedByte={contextMenu.byte}
+          selectedAddress={contextMenu.address}
+          mode={state.mode}
           categories={characterCatalog}
           onClose={closeContextMenu}
           onApplySequence={handleCharacterSequence}
@@ -577,25 +629,33 @@ export default function App(): React.JSX.Element {
   )
 }
 
-function formatByteRanges(bytes: readonly number[]): string {
-  if (bytes.length === 0) return ''
+function formatAddressRanges(addresses: readonly number[], mode: TableMode): string {
+  if (addresses.length === 0) return ''
 
-  const sortedBytes = [...new Set(bytes)].sort((left, right) => left - right)
+  const sortedAddresses = [...new Set(addresses)].sort((left, right) => left - right)
   const ranges: string[] = []
-  let start = sortedBytes[0]
+  let start = sortedAddresses[0]
   let end = start
 
-  for (const byte of sortedBytes.slice(1)) {
-    if (byte === end + 1) {
-      end = byte
+  for (const address of sortedAddresses.slice(1)) {
+    if (address === end + 1) {
+      end = address
       continue
     }
 
-    ranges.push(start === end ? toByteHex(start) : `${toByteHex(start)}-${toByteHex(end)}`)
-    start = byte
-    end = byte
+    ranges.push(
+      start === end
+        ? formatTableAddress(start, mode)
+        : `${formatTableAddress(start, mode)}-${formatTableAddress(end, mode)}`
+    )
+    start = address
+    end = address
   }
 
-  ranges.push(start === end ? toByteHex(start) : `${toByteHex(start)}-${toByteHex(end)}`)
+  ranges.push(
+    start === end
+      ? formatTableAddress(start, mode)
+      : `${formatTableAddress(start, mode)}-${formatTableAddress(end, mode)}`
+  )
   return ranges.join(', ')
 }

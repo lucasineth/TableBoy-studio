@@ -15,16 +15,19 @@
 ## Sobre o projeto
 
 O TableBoy Studio permite criar, abrir, editar, validar e salvar tabelas que
-associam bytes a caracteres, textos ou tokens especiais. O editor visual usa uma
-matriz hexadecimal 16×16, na qual cada célula representa um byte entre <code>00</code> e
-<code>FF</code>.
+associam endereços a caracteres, textos ou tokens especiais. O editor visual usa
+uma matriz hexadecimal 16×16 para tabelas 8-bit e páginas navegáveis para tabelas
+16-bit.
 
 O projeto é inspirado conceitualmente no Table Manager 1.0 de Hyllian, mas possui
 implementação própria, interface original e arquitetura moderna.
 
-## Recursos do MVP
+## Recursos da versão 1.1
 
 - matriz hexadecimal 16×16 editável;
+- tabelas 8-bit (<code>00–FF</code>) e 16-bit (<code>0000–FFFF</code>);
+- detecção automática do modo ao abrir o arquivo;
+- navegação por páginas existentes ou por endereço hexadecimal;
 - criação, abertura, salvamento e Save As de arquivos <code>.tbl</code>;
 - Drag & Drop de arquivos <code>.tbl</code>;
 - suporte a Unicode, strings e tokens como <code>[PLAYER]</code>, <code>[LINE]</code> e <code>[END]</code>;
@@ -59,9 +62,10 @@ F001=[PLAYER]
 F002=[RIVAL]
 ```
 
-O core aceita chaves de tamanho variável, mantém caracteres Unicode e reconhece
-comentários iniciados por <code>#</code>, <code>;</code> ou <code>//</code>. O editor visual atual trabalha
-somente no modo 8-bit (<code>00</code>–<code>FF</code>).
+O core mantém caracteres Unicode e reconhece comentários iniciados por
+<code>#</code>, <code>;</code> ou <code>//</code>. O editor visual aceita documentos uniformes com chaves
+de um byte (8-bit) ou dois bytes (16-bit). Misturar as duas larguras no mesmo
+arquivo produz um erro controlado.
 
 ## Arquitetura
 
@@ -146,7 +150,6 @@ Os artefatos são gerados em <code>dist/</code>.
 
 ## Roadmap
 
-- editor visual para tabelas 16-bit;
 - conversões OEM/ANSI e Windows-1252;
 - suporte dedicado a Shift-JIS;
 - ROM viewer e busca de textos em binários;
@@ -154,7 +157,7 @@ Os artefatos são gerados em <code>dist/</code>.
 - presets personalizados;
 - ferramentas para fontes e glyphs.
 
-Esses recursos não fazem parte do MVP atual.
+Esses recursos não fazem parte da versão 1.1.
 
 ## Créditos
 

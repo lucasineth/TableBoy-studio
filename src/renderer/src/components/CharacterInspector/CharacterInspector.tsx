@@ -1,19 +1,21 @@
 import type { ChangeEvent } from 'react'
 
-import { toByteHex } from '../../../../core/table/EightBitTable.ts'
+import { formatTableAddress, type TableMode } from '../../../../core/table/index.ts'
 
 interface CharacterInspectorProps {
-  byte: number
+  address: number
+  mode: TableMode
   value: string
   onValueChange: (value: string) => void
 }
 
 export function CharacterInspector({
-  byte,
+  address,
+  mode,
   value,
   onValueChange
 }: CharacterInspectorProps): React.JSX.Element {
-  const hex = toByteHex(byte)
+  const hex = formatTableAddress(address, mode)
   const unicode = getUnicodeCodePoints(value)
 
   const handleValueChange = (event: ChangeEvent<HTMLInputElement>): void => {
@@ -21,16 +23,16 @@ export function CharacterInspector({
   }
 
   return (
-    <section className="character-inspector" aria-label="Selected byte inspector">
-      <InspectorValue label="Selected byte" value={hex} accent />
+    <section className="character-inspector" aria-label="Selected table address inspector">
+      <InspectorValue label="Selected" value={hex} accent />
       <InspectorValue label="Address" value={`0x${hex}`} />
-      <InspectorValue label="Decimal" value={byte.toString()} />
+      <InspectorValue label="Decimal" value={address.toString()} />
       <label className="inspector-field inspector-field--editor">
         <span>Value</span>
         <input
           value={value}
           placeholder="Unmapped"
-          aria-label={`Value for byte ${hex}`}
+          aria-label={`Value for address ${hex}`}
           spellCheck={false}
           onChange={handleValueChange}
         />
