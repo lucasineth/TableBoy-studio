@@ -18,8 +18,7 @@ import {
   type TableMode
 } from '../../core/table/index.ts'
 import { characterCatalog } from '../../core/characters/CharacterCatalog.ts'
-import { applyCharacterSequence } from '../../core/characters/applyCharacterSequence.ts'
-import type { CharacterCategory, CharacterOption } from '../../core/characters/CharacterCategory.ts'
+import type { CharacterOption } from '../../core/characters/CharacterCategory.ts'
 import type { OpenedTableFile } from '../../shared/tableFileApi.ts'
 import { AppDialog, type AppDialogKind } from './components/AppDialog/AppDialog.tsx'
 import { CharacterInspector } from './components/CharacterInspector/CharacterInspector.tsx'
@@ -29,6 +28,8 @@ import { MenuBar } from './components/MenuBar/MenuBar.tsx'
 import { StatusBar } from './components/StatusBar/StatusBar.tsx'
 import { TableEditor } from './components/TableEditor/TableEditor.tsx'
 import { Toolbar } from './components/Toolbar/Toolbar.tsx'
+import { RomSearchPanel } from './features/rom-search/RomSearchPanel.tsx'
+import { useRomSearch } from './features/rom-search/useRomSearch.ts'
 import {
   createSampleDocument,
   formatTableDocumentErrors,
@@ -49,6 +50,8 @@ interface NoticeState {
   persistent: boolean
 }
 
+type ActiveWorkspace = 'table-editor' | 'rom-search'
+
 const NOTICE_DURATION_MS = 3000
 
 export default function App(): React.JSX.Element {
@@ -64,7 +67,10 @@ export default function App(): React.JSX.Element {
   const [inspectorVisible, setInspectorVisible] = useState(true)
   const [statusBarVisible, setStatusBarVisible] = useState(true)
   const [dialog, setDialog] = useState<AppDialogKind | null>(null)
+  const [activeWorkspace, setActiveWorkspace] = useState<ActiveWorkspace>('table-editor')
   const dragDepthRef = useRef(0)
+  const romSearch = useRomSearch()
+  const openRomDocument = romSearch.openDocument
 
   const entryMap = useMemo(
     () => createTableEntryMap(state.entries, state.mode),
@@ -334,10 +340,17 @@ export default function App(): React.JSX.Element {
   }, [entryMap.size, state.mode])
 
   const handleFocusSearch = useCallback((): void => {
-    const searchInput = document.querySelector<HTMLInputElement>('.toolbar__search input')
+    const selector =
+      activeWorkspace === 'rom-search' ? '#rom-search-query' : '.toolbar__search input'
+    const searchInput = document.querySelector<HTMLInputElement>(selector)
     searchInput?.focus()
     searchInput?.select()
-  }, [])
+  }, [activeWorkspace])
+
+  const handleOpenRom = useCallback(async (): Promise<void> => {
+    setActiveWorkspace('rom-search')
+    await openRomDocument()
+  }, [openRomDocument])
 
   const handleOpenCharacterCatalog = useCallback((): void => {
     setContextMenu({
@@ -477,46 +490,11 @@ export default function App(): React.JSX.Element {
     [contextMenu]
   )
 
-  const handleCharacterSequence = useCallback(
-    (category: CharacterCategory): void => {
-      if (!contextMenu) return
-
-      const result = applyCharacterSequence(
-        state.entries,
-        contextMenu.address,
-        category.characters,
-        state.mode
-      )
-
-      if (!result.ok) {
-        setNotice({
-          message: `${category.label} requires ${result.requiredCells} cells, but only ${result.availableCells} remain before ${state.mode === '8-bit' ? 'FF' : 'FFFF'}.`,
-          persistent: false
-        })
-        setContextMenu(null)
-        return
-      }
-
-      if (result.overwrittenAddresses.length > 0) {
-        const ranges = formatAddressRanges(result.overwrittenAddresses, state.mode)
-        const confirmed = window.confirm(
-          `As células ${ranges} já possuem valores.\nDeseja substituir as entradas existentes?`
-        )
-        if (!confirmed) {
-          setContextMenu(null)
-          return
-        }
-      }
-
-      dispatch({ type: 'APPLY_ENTRIES', entries: result.entries })
-      setContextMenu(null)
-    },
-    [contextMenu, state.entries, state.mode]
-  )
+  const showStatusBar = statusBarVisible && activeWorkspace === 'table-editor'
 
   return (
     <div
-      className={`app-shell${statusBarVisible ? '' : ' app-shell--without-status'}`}
+      className={`app-shell${showStatusBar ? '' : ' app-shell--without-status'}`}
       onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -534,6 +512,7 @@ export default function App(): React.JSX.Element {
         mode={state.mode}
         onNew={handleNew}
         onOpen={handleOpen}
+        onOpenRom={handleOpenRom}
         onSave={handleSave}
         onSaveAs={handleSaveAs}
         onExit={() => window.close()}
@@ -544,6 +523,7 @@ export default function App(): React.JSX.Element {
         onValidateTable={handleValidateTable}
         onShowStatistics={handleShowStatistics}
         onSearch={handleFocusSearch}
+        onOpenRomSearch={() => setActiveWorkspace('rom-search')}
         onOpenCharacterCatalog={handleOpenCharacterCatalog}
         onToggleInspector={() => setInspectorVisible((visible) => !visible)}
         onToggleStatusBar={() => setStatusBarVisible((visible) => !visible)}
@@ -576,31 +556,44 @@ export default function App(): React.JSX.Element {
         </div>
       ) : null}
 
-      <main
-        className={`editor-workspace${inspectorVisible ? '' : ' editor-workspace--without-inspector'}`}
-      >
-        <TableEditor
-          mode={state.mode}
-          page={page}
-          availablePages={availablePages}
-          selectedAddress={selectedAddress}
-          values={values}
-          onPageChange={handlePageChange}
-          onSelect={setSelectedAddress}
-          onValueChange={handleValueChange}
-          onContextMenu={handleCellContextMenu}
-        />
-        {inspectorVisible ? (
-          <CharacterInspector
-            address={selectedAddress}
+      {activeWorkspace === 'table-editor' ? (
+        <main
+          className={`editor-workspace${inspectorVisible ? '' : ' editor-workspace--without-inspector'}`}
+        >
+          <TableEditor
             mode={state.mode}
-            value={selectedValue}
-            onValueChange={handleInspectorValueChange}
+            page={page}
+            availablePages={availablePages}
+            selectedAddress={selectedAddress}
+            values={values}
+            onPageChange={handlePageChange}
+            onSelect={setSelectedAddress}
+            onValueChange={handleValueChange}
+            onContextMenu={handleCellContextMenu}
           />
-        ) : null}
-      </main>
+          {inspectorVisible ? (
+            <CharacterInspector
+              address={selectedAddress}
+              mode={state.mode}
+              value={selectedValue}
+              onValueChange={handleInspectorValueChange}
+            />
+          ) : null}
+        </main>
+      ) : (
+        <RomSearchPanel
+          state={romSearch.state}
+          tableEntries={state.entries}
+          onBack={() => setActiveWorkspace('table-editor')}
+          onOpenDocument={() => void romSearch.openDocument()}
+          onCloseDocument={() => void romSearch.closeDocument()}
+          onSearch={(request) => void romSearch.startSearch(request)}
+          onCancel={() => void romSearch.cancelActiveSearch()}
+          onSelectResult={romSearch.selectResult}
+        />
+      )}
 
-      {statusBarVisible ? (
+      {showStatusBar ? (
         <StatusBar
           selectedAddress={selectedAddress}
           mode={state.mode}
@@ -619,7 +612,21 @@ export default function App(): React.JSX.Element {
           mode={state.mode}
           categories={characterCatalog}
           onClose={closeContextMenu}
-          onApplySequence={handleCharacterSequence}
+          onEditValue={() => {
+            const address = contextMenu.address
+            setContextMenu(null)
+            requestAnimationFrame(() => {
+              const cell = document.querySelector<HTMLInputElement>(
+                `[data-address="${formatTableAddress(address, state.mode)}"]`
+              )
+              cell?.focus()
+              cell?.select()
+            })
+          }}
+          onClear={() => {
+            handleValueChange(contextMenu.address, '')
+            setContextMenu(null)
+          }}
           onSelectCharacter={handleCharacterSelect}
         />
       ) : null}
@@ -627,35 +634,4 @@ export default function App(): React.JSX.Element {
       {dialog ? <AppDialog kind={dialog} onClose={closeDialog} /> : null}
     </div>
   )
-}
-
-function formatAddressRanges(addresses: readonly number[], mode: TableMode): string {
-  if (addresses.length === 0) return ''
-
-  const sortedAddresses = [...new Set(addresses)].sort((left, right) => left - right)
-  const ranges: string[] = []
-  let start = sortedAddresses[0]
-  let end = start
-
-  for (const address of sortedAddresses.slice(1)) {
-    if (address === end + 1) {
-      end = address
-      continue
-    }
-
-    ranges.push(
-      start === end
-        ? formatTableAddress(start, mode)
-        : `${formatTableAddress(start, mode)}-${formatTableAddress(end, mode)}`
-    )
-    start = address
-    end = address
-  }
-
-  ranges.push(
-    start === end
-      ? formatTableAddress(start, mode)
-      : `${formatTableAddress(start, mode)}-${formatTableAddress(end, mode)}`
-  )
-  return ranges.join(', ')
 }

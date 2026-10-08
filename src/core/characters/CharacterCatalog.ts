@@ -24,30 +24,37 @@ function characterOption(value: string): CharacterOption {
 export const uppercaseCategory: CharacterCategory = {
   id: 'uppercase',
   label: 'Maiúsculas (A-Z)',
+  group: 'Latin',
   characters: characterRange(0x41, 26),
-  behavior: 'sequential',
-  presentation: 'compact'
+  presentation: 'compact',
+  ordered: true,
+  discoverable: true
 }
 
 export const lowercaseCategory: CharacterCategory = {
   id: 'lowercase',
   label: 'Minúsculas (a-z)',
+  group: 'Latin',
   characters: characterRange(0x61, 26),
-  behavior: 'sequential',
-  presentation: 'compact'
+  presentation: 'compact',
+  ordered: true,
+  discoverable: true
 }
 
 export const numbersCategory: CharacterCategory = {
   id: 'numbers',
   label: 'Números (0-9)',
+  group: 'Latin',
   characters: characterRange(0x30, 10),
-  behavior: 'sequential',
-  presentation: 'compact'
+  presentation: 'compact',
+  ordered: true,
+  discoverable: true
 }
 
 export const portugueseCategory: CharacterCategory = {
   id: 'pt-br',
   label: 'Português PT-BR',
+  group: 'Latin',
   characters: characterOptions([
     'Á',
     'À',
@@ -76,8 +83,140 @@ export const portugueseCategory: CharacterCategory = {
     'ü',
     'ç'
   ]),
-  behavior: 'picker',
-  presentation: 'compact'
+  presentation: 'compact',
+  ordered: false,
+  discoverable: false
+}
+
+export const latinExtendedCategory: CharacterCategory = {
+  id: 'latin-extended',
+  label: 'Latin Extended',
+  group: 'Latin',
+  characters: characterOptions([
+    'À',
+    'Á',
+    'Â',
+    'Ã',
+    'Ä',
+    'Å',
+    'Æ',
+    'Ç',
+    'È',
+    'É',
+    'Ê',
+    'Ë',
+    'Ì',
+    'Í',
+    'Î',
+    'Ï',
+    'Ð',
+    'Ñ',
+    'Ò',
+    'Ó',
+    'Ô',
+    'Õ',
+    'Ö',
+    'Ø',
+    'Ù',
+    'Ú',
+    'Û',
+    'Ü',
+    'Ý',
+    'Þ',
+    'ß',
+    'à',
+    'á',
+    'â',
+    'ã',
+    'ä',
+    'å',
+    'æ',
+    'ç',
+    'è',
+    'é',
+    'ê',
+    'ë',
+    'ì',
+    'í',
+    'î',
+    'ï',
+    'ð',
+    'ñ',
+    'ò',
+    'ó',
+    'ô',
+    'õ',
+    'ö',
+    'ø',
+    'ù',
+    'ú',
+    'û',
+    'ü',
+    'ý',
+    'þ',
+    'ÿ',
+    'Ā',
+    'ā',
+    'Ă',
+    'ă',
+    'Ą',
+    'ą',
+    'Ć',
+    'ć',
+    'Č',
+    'č',
+    'Ď',
+    'ď',
+    'Đ',
+    'đ',
+    'Ē',
+    'ē',
+    'Ė',
+    'ė',
+    'Ę',
+    'ę',
+    'Ě',
+    'ě',
+    'Ğ',
+    'ğ',
+    'İ',
+    'ı',
+    'Ł',
+    'ł',
+    'Ń',
+    'ń',
+    'Ň',
+    'ň',
+    'Ō',
+    'ō',
+    'Ő',
+    'ő',
+    'Œ',
+    'œ',
+    'Ř',
+    'ř',
+    'Ś',
+    'ś',
+    'Š',
+    'š',
+    'Ť',
+    'ť',
+    'Ū',
+    'ū',
+    'Ů',
+    'ů',
+    'Ű',
+    'ű',
+    'Ź',
+    'ź',
+    'Ż',
+    'ż',
+    'Ž',
+    'ž'
+  ]),
+  presentation: 'grid',
+  ordered: false,
+  discoverable: false
 }
 
 const romajiCharacters = [
@@ -227,31 +366,141 @@ const katakanaCharacters = [
   'ン'
 ]
 
+const translationHiraganaCharacters = [
+  ...hiraganaCharacters,
+  ...Array.from('ぁぃぅぇぉゃゅょがぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽっ')
+]
+
+const translationKatakanaCharacters = [
+  ...katakanaCharacters,
+  ...Array.from('ァィゥェォャュョガギグゲゴザジズゼゾダヂヅデドバビブベボパピプペポッ')
+]
+
+export const punctuationCategory: CharacterCategory = {
+  id: 'punctuation',
+  label: 'Pontuação e símbolos',
+  group: 'Symbols',
+  characters: characterOptions(
+    [
+      '.',
+      ',',
+      ':',
+      ';',
+      '!',
+      '?',
+      '…',
+      '"',
+      "'",
+      '“',
+      '”',
+      '‘',
+      '’',
+      '(',
+      ')',
+      '[',
+      ']',
+      '{',
+      '}',
+      '-',
+      '–',
+      '—',
+      '/',
+      '\\',
+      '¿',
+      '¡',
+      'º',
+      'ª',
+      '·',
+      '×',
+      '♂',
+      '♀',
+      '¥',
+      '$',
+      '▶',
+      '！？。ー‥'
+    ].flatMap((value) => Array.from(value))
+  ),
+  presentation: 'grid',
+  ordered: false,
+  discoverable: false
+}
+
+export const operatorsCategory: CharacterCategory = {
+  id: 'operators',
+  label: 'Operators',
+  group: 'Symbols',
+  characters: characterOptions(['+', '-', '×', '÷', '=', '<', '>', '%', '±']),
+  presentation: 'grid',
+  ordered: false,
+  discoverable: false
+}
+
+export const currencyCategory: CharacterCategory = {
+  id: 'currency',
+  label: 'Currency',
+  group: 'Symbols',
+  characters: characterOptions(['$', '¢', '£', '¥', '€']),
+  presentation: 'grid',
+  ordered: false,
+  discoverable: false
+}
+
+export const directionsCategory: CharacterCategory = {
+  id: 'directions',
+  label: 'Directions',
+  group: 'Symbols',
+  characters: characterOptions(['←', '→', '↑', '↓', '◀', '▶', '▲', '▼', '◁', '▷', '△', '▽']),
+  presentation: 'grid',
+  ordered: false,
+  discoverable: false
+}
+
+export const shapesCategory: CharacterCategory = {
+  id: 'shapes',
+  label: 'Shapes / Game UI',
+  group: 'Symbols',
+  characters: characterOptions(['●', '○', '■', '□', '★', '☆', '♥', '♦', '♣', '♠', '♂', '♀']),
+  presentation: 'grid',
+  ordered: false,
+  discoverable: false
+}
+
 export const characterCatalog: readonly CharacterCategory[] = [
   uppercaseCategory,
   lowercaseCategory,
   numbersCategory,
   portugueseCategory,
+  latinExtendedCategory,
+  punctuationCategory,
+  operatorsCategory,
+  currencyCategory,
+  directionsCategory,
+  shapesCategory,
   {
     id: 'romaji',
     label: 'Romaji',
+    group: 'Japanese',
     characters: characterOptions(romajiCharacters),
-    behavior: 'picker',
-    presentation: 'grid'
+    presentation: 'grid',
+    ordered: true,
+    discoverable: false
   },
   {
     id: 'katakana',
     label: 'Katakana',
-    characters: characterOptions(katakanaCharacters),
-    behavior: 'picker',
-    presentation: 'grid'
+    group: 'Japanese',
+    characters: characterOptions(translationKatakanaCharacters),
+    presentation: 'grid',
+    ordered: true,
+    discoverable: false
   },
   {
     id: 'hiragana',
     label: 'Hiragana',
-    characters: characterOptions(hiraganaCharacters),
-    behavior: 'picker',
-    presentation: 'grid'
-  },
-  { id: 'blocks', label: 'Blocos', characters: [], behavior: 'picker', presentation: 'grid' }
+    group: 'Japanese',
+    characters: characterOptions(translationHiraganaCharacters),
+    presentation: 'grid',
+    ordered: true,
+    discoverable: false
+  }
 ]

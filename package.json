@@ -9,6 +9,11 @@
     "lint": "eslint --cache .",
     "typecheck": "tsc --noEmit",
     "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test test/**/*.test.mts",
+    "benchmark:search": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types benchmark/search/searchBenchmark.mts",
+    "benchmark:relative-search": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types benchmark/relative-search/relativeSearchBenchmark.mts",
+    "benchmark:relative-search16": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types benchmark/relative-search16/relativeSearch16Benchmark.mts",
+    "benchmark:search-worker": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types benchmark/search-worker/searchWorkerBenchmark.mts",
+    "benchmark:advanced-relative-search": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types benchmark/advanced-relative-search/advancedRelativeSearchBenchmark.mts",
     "start": "electron-vite preview",
     "dev": "electron-vite dev",
     "build": "electron-vite build",
@@ -20,7 +25,8 @@
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
-    "@electron-toolkit/utils": "^4.0.0"
+    "@electron-toolkit/utils": "^4.0.0",
+    "iconv-lite": "^0.7.3"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config": "^2.1.0",

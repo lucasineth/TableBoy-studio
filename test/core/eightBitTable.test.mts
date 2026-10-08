@@ -7,9 +7,14 @@ import {
   lowercaseCategory,
   numbersCategory,
   portugueseCategory,
+  punctuationCategory,
   uppercaseCategory
 } from '../../src/core/characters/CharacterCatalog.ts'
-import { applyCharacterSequence } from '../../src/core/characters/applyCharacterSequence.ts'
+import {
+  createEditorState,
+  editorReducer,
+  isEditorModified
+} from '../../src/renderer/src/state/editorState.ts'
 
 test('converts between matrix positions and 8-bit values', () => {
   assert.equal(byteFromPosition(0x4, 0x1), 0x41)
@@ -45,10 +50,13 @@ test('Portuguese catalog contains the requested uppercase and lowercase characte
   })
 })
 
-test('Hiragana catalog contains the 46 basic characters without placeholder entries', () => {
+test('Japanese catalogs contain translation-relevant base and extended kana', () => {
   const hiragana = characterCatalog.find((category) => category.id === 'hiragana')
+  const katakana = characterCatalog.find((category) => category.id === 'katakana')
   assert.ok(hiragana)
-  assert.equal(hiragana.characters.length, 46)
+  assert.ok(katakana)
+  assert.equal(hiragana.characters.length, 80)
+  assert.equal(katakana.characters.length, 80)
   assert.equal(
     hiragana.characters.some((option) => option.value === '->'),
     false
@@ -57,6 +65,22 @@ test('Hiragana catalog contains the 46 basic characters without placeholder entr
     hiragana.characters.some((option) => option.value === 'も'),
     true
   )
+  assert.equal(
+    hiragana.characters.some((option) => option.value === 'が'),
+    true
+  )
+  assert.equal(
+    katakana.characters.some((option) => option.value === 'ッ'),
+    true
+  )
+})
+
+test('punctuation catalog contains useful translation glyphs without byte assignments', () => {
+  const values = punctuationCategory.characters.map((option) => option.value)
+
+  assert.ok(['!', '…', '“', '♂', '▶', '。', 'ー'].every((value) => values.includes(value)))
+  assert.equal(values.includes(' '), false)
+  assert.equal(values.includes('\u3000'), false)
 })
 
 test('selected byte, not the catalog, determines the character assignment', () => {
@@ -70,52 +94,60 @@ test('selected byte, not the catalog, determines the character assignment', () =
   assert.deepEqual(atE5, [{ key: [0xe5], value: 'Ã' }])
 })
 
-test('sequential categories fill from the selected byte', () => {
-  const uppercase = applyCharacterSequence([], 0x41, uppercaseCategory.characters)
-  const lowercase = applyCharacterSequence([], 0x80, lowercaseCategory.characters)
-  const numbers = applyCharacterSequence([], 0x20, numbersCategory.characters)
-
-  assert.equal(uppercase.ok, true)
-  assert.equal(lowercase.ok, true)
-  assert.equal(numbers.ok, true)
-  if (!uppercase.ok || !lowercase.ok || !numbers.ok) return
-
-  assert.deepEqual(uppercase.entries.at(0), { key: [0x41], value: 'A' })
-  assert.deepEqual(uppercase.entries.at(-1), { key: [0x5a], value: 'Z' })
-  assert.deepEqual(lowercase.entries.at(-1), { key: [0x99], value: 'z' })
-  assert.deepEqual(numbers.entries.at(-1), { key: [0x29], value: '9' })
+test('every catalog choice changes only the selected byte, including FF', () => {
+  for (const category of [
+    uppercaseCategory,
+    lowercaseCategory,
+    numbersCategory,
+    portugueseCategory
+  ]) {
+    const initial = [
+      { key: [0xf1], value: 'old' },
+      { key: [0xf2], value: 'neighbor' }
+    ]
+    const option = category.characters[0]
+    const updated = setEightBitValue(initial, 0xf1, option.value)
+    assert.deepEqual(updated, [
+      { key: [0xf1], value: option.value },
+      { key: [0xf2], value: 'neighbor' }
+    ])
+    assert.deepEqual(setEightBitValue([], 0xff, option.value), [
+      { key: [0xff], value: option.value }
+    ])
+  }
 })
 
-test('sequential application rejects overflow and reports occupied cells', () => {
-  const overflow = applyCharacterSequence([], 0xf8, uppercaseCategory.characters)
-  assert.deepEqual(overflow, {
-    ok: false,
-    reason: 'OVERFLOW',
-    availableCells: 8,
-    requiredCells: 26
+test('a single catalog selection participates in Undo/Redo and modified state', () => {
+  const initial = createEditorState({
+    mode: '8-bit',
+    entries: [{ key: [0xf2], value: 'unchanged' }]
   })
-
-  const replacement = applyCharacterSequence(
-    [
-      { key: [0x41], value: 'old' },
-      { key: [0x45], value: 'old' }
-    ],
-    0x41,
-    numbersCategory.characters
-  )
-  assert.equal(replacement.ok, true)
-  if (!replacement.ok) return
-  assert.deepEqual(replacement.overwrittenAddresses, [0x41, 0x45])
+  const selected = editorReducer(initial, { type: 'SET_VALUE', address: 0xe5, value: 'Ã' })
+  assert.equal(selected.past.length, 1)
+  assert.equal(isEditorModified(selected), true)
+  assert.deepEqual(selected.entries, [
+    { key: [0xf2], value: 'unchanged' },
+    { key: [0xe5], value: 'Ã' }
+  ])
+  const undone = editorReducer(selected, { type: 'UNDO' })
+  assert.deepEqual(undone.entries, initial.entries)
+  assert.equal(isEditorModified(undone), false)
+  assert.deepEqual(editorReducer(undone, { type: 'REDO' }).entries, selected.entries)
 })
 
-test('sequential categories preserve 16-bit addresses', () => {
-  const result = applyCharacterSequence([], 0x8140, numbersCategory.characters, '16-bit')
-
-  assert.equal(result.ok, true)
-  if (!result.ok) return
-
-  assert.deepEqual(result.entries.at(0), { key: [0x81, 0x40], value: '0' })
-  assert.deepEqual(result.entries.at(-1), { key: [0x81, 0x49], value: '9' })
-  assert.equal(result.startAddress, 0x8140)
-  assert.equal(result.endAddress, 0x8149)
+test('Japanese selection preserves a 16-bit address without touching its neighbor', () => {
+  const initial = createEditorState({
+    mode: '16-bit',
+    entries: [{ key: [0x81, 0x41], value: 'neighbor' }]
+  })
+  const option = characterCatalog.find((category) => category.id === 'hiragana')!.characters[0]
+  const selected = editorReducer(initial, {
+    type: 'SET_VALUE',
+    address: 0x8140,
+    value: option.value
+  })
+  assert.deepEqual(selected.entries, [
+    { key: [0x81, 0x41], value: 'neighbor' },
+    { key: [0x81, 0x40], value: 'あ' }
+  ])
 })
