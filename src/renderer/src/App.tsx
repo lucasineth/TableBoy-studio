@@ -18,7 +18,8 @@ import {
   type TableMode
 } from '../../core/table/index.ts'
 import { characterCatalog } from '../../core/characters/CharacterCatalog.ts'
-import type { CharacterOption } from '../../core/characters/CharacterCategory.ts'
+import type { CharacterCategory, CharacterOption } from '../../core/characters/CharacterCategory.ts'
+import { applyCharacterSequence } from '../../core/characters/applyCharacterSequence.ts'
 import type { OpenedTableFile } from '../../shared/tableFileApi.ts'
 import { AppDialog, type AppDialogKind } from './components/AppDialog/AppDialog.tsx'
 import { CharacterInspector } from './components/CharacterInspector/CharacterInspector.tsx'
@@ -473,6 +474,35 @@ export default function App(): React.JSX.Element {
     [contextMenu]
   )
 
+  const handleCharacterSequence = useCallback(
+    (category: CharacterCategory): void => {
+      if (!contextMenu) return
+      const result = applyCharacterSequence(
+        state.entries,
+        contextMenu.address,
+        category.characters,
+        state.mode
+      )
+      setContextMenu(null)
+      if (!result.ok) {
+        setNotice({
+          message: `${category.label} requires ${result.requiredCells} cells, but only ${result.availableCells} remain. Nothing was changed.`,
+          persistent: false
+        })
+        return
+      }
+      if (
+        result.overwrittenAddresses.length > 0 &&
+        !window.confirm(
+          `Fill ${category.label} from ${formatTableAddress(result.startAddress, state.mode)} to ${formatTableAddress(result.endAddress, state.mode)}? This will replace ${result.overwrittenAddresses.length} existing entries.`
+        )
+      )
+        return
+      dispatch({ type: 'APPLY_ENTRIES', entries: result.entries })
+    },
+    [contextMenu, state.entries, state.mode]
+  )
+
   return (
     <div
       className="app-shell"
@@ -595,6 +625,7 @@ export default function App(): React.JSX.Element {
             setContextMenu(null)
           }}
           onSelectCharacter={handleCharacterSelect}
+          onApplySequence={handleCharacterSequence}
         />
       ) : null}
 

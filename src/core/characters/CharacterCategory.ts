@@ -10,6 +10,7 @@ export interface CharacterCategory {
   group: 'Latin' | 'Symbols' | 'Japanese'
   characters: readonly CharacterOption[]
   presentation?: 'compact' | 'grid'
+  behavior?: 'picker' | 'sequential'
   ordered: boolean
   discoverable: boolean
 }

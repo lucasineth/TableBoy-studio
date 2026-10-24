@@ -23,6 +23,7 @@ function characterOption(value: string): CharacterOption {
 
 export const uppercaseCategory: CharacterCategory = {
   id: 'uppercase',
+  behavior: 'sequential',
   label: 'Maiúsculas (A-Z)',
   group: 'Latin',
   characters: characterRange(0x41, 26),
@@ -33,6 +34,7 @@ export const uppercaseCategory: CharacterCategory = {
 
 export const lowercaseCategory: CharacterCategory = {
   id: 'lowercase',
+  behavior: 'sequential',
   label: 'Minúsculas (a-z)',
   group: 'Latin',
   characters: characterRange(0x61, 26),
@@ -43,6 +45,7 @@ export const lowercaseCategory: CharacterCategory = {
 
 export const numbersCategory: CharacterCategory = {
   id: 'numbers',
+  behavior: 'sequential',
   label: 'Números (0-9)',
   group: 'Latin',
   characters: characterRange(0x30, 10),

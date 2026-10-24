@@ -94,7 +94,7 @@ test('selected byte, not the catalog, determines the character assignment', () =
   assert.deepEqual(atE5, [{ key: [0xe5], value: 'Ã' }])
 })
 
-test('every catalog choice changes only the selected byte, including FF', () => {
+test('individual character assignment changes only the selected byte, including FF', () => {
   for (const category of [
     uppercaseCategory,
     lowercaseCategory,

@@ -6,6 +6,8 @@
 - Mantidos os modos 8/16 bits, catálogo, inspector, busca de entradas, Undo/Redo,
   drag and drop e proteção de alterações não salvas.
 - Inicialização com documento vazio em vez de uma tabela de demonstração.
+- Restaurado o preenchimento automático de A–Z, a–z e 0–9 a partir da célula
+  selecionada, com confirmação de substituições, limite de endereço e Undo/Redo.
 - Removidos do projeto ativo ROM Tools, Text Search, Text Browser, assistente de
   mappings, motores de busca, workers, IPC binário e respectivos testes/benchmarks.
 - Todo o projeto anterior foi arquivado em

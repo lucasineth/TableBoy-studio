@@ -15,7 +15,9 @@ de tabelas. O código do ROM Tools foi preservado em um arquivo separado.
 - Detecção do modo ao abrir e navegação por páginas em tabelas de 16 bits.
 - Caracteres Unicode, strings e tokens, editáveis na matriz ou no inspector.
 - Catálogo de caracteres latinos, PT-BR, símbolos e conjuntos japoneses.
-- Cada escolha no catálogo altera somente a célula selecionada.
+- Maiúsculas (A–Z), minúsculas (a–z) e números (0–9) preenchem automaticamente
+  a sequência inteira a partir da célula selecionada, em uma única ação Undo/Redo.
+- As demais categorias permitem escolher um caractere para a célula selecionada.
 - Busca por endereço hexadecimal ou valor da tabela, validação e estatísticas.
 - Undo/Redo, arrastar um arquivo `.tbl` para abrir e proteção de alterações ao
   criar, abrir ou fechar documentos.
@@ -23,6 +25,11 @@ de tabelas. O código do ROM Tools foi preservado em um arquivo separado.
 O aplicativo começa com uma tabela vazia. Para criar uma tabela de 16 bits,
 selecione **Table Mode → 16-bit** enquanto a tabela estiver vazia. Digite uma
 página hexadecimal ou navegue pelas páginas presentes no documento.
+
+Para inserir um alfabeto ou os números, clique com o botão direito na célula
+inicial e escolha **Maiúsculas (A-Z)**, **Minúsculas (a-z)** ou **Números (0-9)**.
+Entradas existentes exigem confirmação antes da substituição. Se a sequência não
+couber até `FF` ou `FFFF`, nenhuma célula será alterada.
 
 Arquivos misturando chaves de 8 e 16 bits, chaves maiores que dois bytes e
 entradas inválidas são recusados com uma mensagem. O editor não converte

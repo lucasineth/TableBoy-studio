@@ -142,6 +142,25 @@ try {
 
   await clickAction('New')
   await waitValue('41', '')
+  const fillSequence = async (address, name) => {
+    await cell(address).click({ button: 'right' })
+    await page.getByRole('menuitem', { name, exact: true }).click()
+  }
+  for (const [name, first, last, count] of [
+    ['Maiúsculas (A-Z)', 'A', 'Z', 26],
+    ['Minúsculas (a-z)', 'a', 'z', 26],
+    ['Números (0-9)', '0', '9', 10]
+  ]) {
+    await fillSequence('40', name)
+    await waitValue('40', first)
+    await waitValue((0x40 + count - 1).toString(16).toUpperCase(), last)
+    assert.equal(await cell('3F').inputValue(), '')
+    assert.equal(await cell((0x40 + count).toString(16).toUpperCase()).inputValue(), '')
+    await clickAction('Undo')
+    await waitValue('40', '')
+  }
+  check('8-bit alphabet and numbers fill automatically from the chosen cell and undo in one step')
+
   await page.getByLabel('Table mode', { exact: true }).selectOption('16-bit')
   await cell('0000').waitFor()
   const pageInput = page.getByLabel('Hexadecimal table page')
@@ -167,12 +186,7 @@ try {
   await cell('8142').click({ button: 'right' })
   const catalog = page.getByRole('menu', { name: /Character catalog/ })
   await catalog.waitFor()
-  const category = catalog
-    .getByRole('menuitem')
-    .filter({ hasText: /Latin.*Uppercase|Uppercase.*Latin/i })
-    .first()
-  if (await category.count()) await category.click()
-  else await catalog.locator('button[aria-haspopup="dialog"]').first().click()
+  await catalog.locator('button[aria-haspopup="dialog"]').first().click()
   const picker = page.locator('.character-picker')
   const chosenCharacter = await picker.locator('.character-option').first().innerText()
   await picker.locator('.character-option').first().click()
@@ -180,6 +194,44 @@ try {
   assert.equal(await cell('8141').inputValue(), 'い')
   assert.equal(await cell('8143').inputValue(), '')
   check('Character catalog changes only the selected 16-bit cell')
+
+  await fillSequence('8160', 'Maiúsculas (A-Z)')
+  await waitValue('8179', 'Z')
+  await clickAction('Undo')
+  await waitValue('8160', '')
+  await clickAction('Redo')
+  await waitValue('8160', 'A')
+  await fillSequence('8180', 'Minúsculas (a-z)')
+  await waitValue('8199', 'z')
+  await fillSequence('81B0', 'Números (0-9)')
+  await waitValue('81B9', '9')
+  assert.equal(await cell('8141').inputValue(), 'い')
+  check('16-bit uppercase, lowercase and numeric sequences preserve full addresses and Undo/Redo')
+
+  // Electron can resolve native JavaScript dialogs before CDP receives the event.
+  // Automate only the choice; exercise the real fill and history paths below.
+  await page.evaluate(() => {
+    window.confirm = () => false
+  })
+  await fillSequence('8160', 'Números (0-9)')
+  await waitValue('8160', 'A')
+  await page.evaluate(() => {
+    window.confirm = () => true
+  })
+  await fillSequence('8160', 'Números (0-9)')
+  await waitValue('8160', '0')
+  await waitValue('8169', '9')
+  assert.equal(await cell('8179').inputValue(), 'Z')
+  await clickAction('Undo')
+  await waitValue('8160', 'A')
+  await pageInput.fill('FF')
+  await pageInput.press('Enter')
+  await fillSequence('FFFF', 'Números (0-9)')
+  await page.getByRole('status').filter({ hasText: 'only 1 remain' }).waitFor()
+  assert.equal(await cell('FFFF').inputValue(), '')
+  await pageInput.fill('81')
+  await pageInput.press('Enter')
+  check('Overwrite requires confirmation and overflow at FFFF changes nothing')
 
   await page.keyboard.press('Control+f')
   const search = page.getByRole('searchbox', { name: 'Search table' })
@@ -214,7 +266,7 @@ try {
         timestamp: new Date().toISOString(),
         checks,
         errors,
-        note: 'Native dialog choices are automated; application UI, sandbox, preload, IPC and filesystem are real.'
+        note: 'Native and renderer dialog choices are automated; application UI, sandbox, preload, IPC and filesystem are real.'
       },
       null,
       2

@@ -77,7 +77,15 @@ test('catalog categories have no duplicate values or ROM mapping fields', () => 
       new Set(item.characters.map((option) => option.value)).size,
       item.characters.length
     )
-    assert.deepEqual(Object.keys(item).sort(), [...categoryFields].sort())
+    assert.deepEqual(
+      Object.keys(item)
+        .filter((key) => key !== 'behavior')
+        .sort(),
+      [...categoryFields].sort()
+    )
+    assert.ok(
+      item.behavior === undefined || item.behavior === 'picker' || item.behavior === 'sequential'
+    )
 
     for (const option of item.characters) {
       assert.deepEqual(

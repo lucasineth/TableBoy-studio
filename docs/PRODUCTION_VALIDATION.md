@@ -20,17 +20,17 @@ Validado em 24/10/2026 no Windows x64, Node.js 24.18.0, npm 12.1.0 e Electron
 | ----------------------------- | ------------------------------------------------- |
 | `npm run typecheck`           | Aprovado                                          |
 | `npm run lint`                | Aprovado, inclusive o script de validação desktop |
-| `npm test`                    | 37 testes aprovados, zero falhas                  |
+| `npm test`                    | 42 testes aprovados, zero falhas                  |
 | `npm run build`               | Aprovado                                          |
 | `npm run build:win`           | Aprovado; instalador NSIS x64 gerado              |
 | `git diff --check`            | Sem erros                                         |
-| Aplicativo Windows empacotado | 9 cenários aprovados, zero exceções no renderer   |
+| Aplicativo Windows empacotado | 12 cenários aprovados, zero exceções no renderer  |
 
 ## Fluxo desktop verificado
 
 O script [verify-desktop.mjs](../scripts/verify-desktop.mjs) executou o
 `win-unpacked/TableBoyStudio.exe` desta entrega. As escolhas dos diálogos nativos
-foram automatizadas; interface, sandbox, preload, IPC e leitura/gravação no sistema
+e das confirmações do renderer foram automatizadas; interface, sandbox, preload, IPC e leitura/gravação no sistema
 de arquivos foram reais. Fixtures e perfil de teste foram criados em pasta
 temporária separada dos documentos do usuário.
 
@@ -45,6 +45,10 @@ temporária separada dos documentos do usuário.
 7. Ctrl+F seleciona o endereço `8140`; F1 abre a ajuda de atalhos.
 8. Cancel ao fechar mantém a janela e o documento modificado.
 9. Nenhuma exceção no renderer durante a execução.
+10. Preenchimento automático de A–Z, a–z e 0–9 em 8 bits, com uma única ação Undo.
+11. Sequências automáticas em 16 bits com endereços completos e Undo/Redo.
+12. Cancelar a substituição mantém os valores; confirmar altera somente o intervalo
+    da sequência. Overflow em `FFFF` não altera nenhuma célula.
 
 Evidências: [resultado estruturado](validation/desktop-check.json) e
 [captura do editor](validation/table-editor-1.5.0.png).
@@ -63,7 +67,7 @@ nenhuma dependência adicional foi incluída no aplicativo ou no lockfile.
 - Instalador: `dist/table-editor-1.5.0/TableBoy Studio-Setup-1.5.0.exe`.
 - Executável: `dist/table-editor-1.5.0/win-unpacked/TableBoyStudio.exe`.
 - SHA-256 do instalador:
-  `AD2E546F990333714FD5F5C13F280D273D54B4B2CF1A3DA1A59E018359E57434`.
+  `CF0D408B094E6C761ED3C8B5CEA7C6F2FB9047C7A0F3C9A2B631054E7A93352E`.
 - SHA-256 do arquivo de backup:
   `E99DD274E739A5DB5D06E2D0E8F1BA35AEA7F3C8C48D725C309FEAA0C831708F`.
 
