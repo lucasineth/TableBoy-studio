@@ -146,9 +146,7 @@ export function MenuBar({
       label: 'Encoding',
       items: [
         { label: `Custom ${mode}`, checked: true, disabled: true },
-        { label: 'UTF-8 .tbl Files', checked: true, disabled: true },
-        { label: 'ANSI / OEM', disabled: true, separatorBefore: true },
-        { label: 'Shift-JIS', disabled: true }
+        { label: 'UTF-8 .tbl Files', checked: true, disabled: true }
       ]
     },
     {

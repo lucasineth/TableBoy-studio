@@ -7,7 +7,10 @@ export interface CharacterOption {
 export interface CharacterCategory {
   id: string
   label: string
+  group: 'Latin' | 'Symbols' | 'Japanese'
   characters: readonly CharacterOption[]
-  behavior: 'sequential' | 'picker'
   presentation?: 'compact' | 'grid'
+  behavior?: 'picker' | 'sequential'
+  ordered: boolean
+  discoverable: boolean
 }

@@ -12,6 +12,8 @@ function createWindow(): BrowserWindow {
   const mainWindow = new BrowserWindow({
     width: 900,
     height: 690,
+    minWidth: 760,
+    minHeight: 560,
     show: false,
     autoHideMenuBar: true,
     icon,
@@ -19,7 +21,7 @@ function createWindow(): BrowserWindow {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false
+      sandbox: true
     }
   })
 

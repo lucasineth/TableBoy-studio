@@ -63,16 +63,35 @@ select:focus-visible {
 }
 
 .app-shell {
-  display: grid;
-  grid-template-rows: 30px 52px minmax(0, 1fr) 27px;
+  display: flex;
+  flex-direction: column;
   width: 100%;
   height: 100%;
   overflow: hidden;
   background: rgb(12 16 22 / 72%);
 }
 
-.app-shell--without-status {
-  grid-template-rows: 30px 52px minmax(0, 1fr);
+.workspace-view {
+  flex: 1;
+  min-width: 0;
+}
+
+.app-shell > .menu-bar {
+  min-height: 30px;
+  flex-shrink: 0;
+}
+
+.editor-toolbar-context {
+  flex-shrink: 0;
+}
+
+.editor-toolbar-context .toolbar {
+  height: 52px;
+}
+
+.app-shell > .status-bar {
+  min-height: 27px;
+  flex-shrink: 0;
 }
 
 .file-drop-overlay {
@@ -805,7 +824,48 @@ select:focus-visible {
   text-transform: uppercase;
 }
 
-.context-menu > button {
+.context-menu__categories {
+  max-height: min(65vh, 540px);
+  overflow-y: auto;
+  scrollbar-color: rgb(111 132 150 / 45%) transparent;
+  scrollbar-width: thin;
+}
+
+.context-menu__categories::-webkit-scrollbar {
+  width: 7px;
+}
+
+.context-menu__categories::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.context-menu__categories::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background: #536171;
+  background-clip: content-box;
+}
+
+.context-menu__categories::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+  background-clip: content-box;
+}
+
+.context-menu__group-label {
+  padding: 8px 8px 3px;
+  color: #8290a2;
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.context-menu__separator {
+  height: 1px;
+  margin: 5px 4px;
+  background: var(--border);
+}
+
+.context-menu__categories > button {
   display: flex;
   width: 100%;
   min-height: 30px;
@@ -819,9 +879,9 @@ select:focus-visible {
   cursor: default;
 }
 
-.context-menu > button:hover,
-.context-menu > button:focus-visible,
-.context-menu > button[aria-expanded='true'] {
+.context-menu__categories > button:hover,
+.context-menu__categories > button:focus-visible,
+.context-menu__categories > button[aria-expanded='true'] {
   color: #fff;
   background: #2b6b65;
   outline: 0;

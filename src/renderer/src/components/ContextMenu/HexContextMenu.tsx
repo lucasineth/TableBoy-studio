@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from 'react'
+import { Fragment, useEffect, useState, type CSSProperties } from 'react'
 
 import type {
   CharacterCategory,
@@ -13,8 +13,10 @@ interface HexContextMenuProps {
   y: number
   categories: readonly CharacterCategory[]
   onClose: () => void
-  onApplySequence: (category: CharacterCategory) => void
+  onEditValue: () => void
+  onClear: () => void
   onSelectCharacter: (option: CharacterOption) => void
+  onApplySequence: (category: CharacterCategory) => void
 }
 
 export function HexContextMenu({
@@ -24,6 +26,8 @@ export function HexContextMenu({
   y,
   categories,
   onClose,
+  onEditValue,
+  onClear,
   onApplySequence,
   onSelectCharacter
 }: HexContextMenuProps): React.JSX.Element {
@@ -51,23 +55,13 @@ export function HexContextMenu({
   const opensToLeft = x > window.innerWidth - 570
 
   const activateCategory = (category: CharacterCategory): void => {
-    if (category.behavior !== 'picker') {
+    if (category.behavior === 'sequential') {
       setActiveCategoryId(null)
       setPreviewOption(null)
       return
     }
-
     setActiveCategoryId(category.id)
     setPreviewOption(category.characters[0] ?? null)
-  }
-
-  const handleCategoryClick = (category: CharacterCategory): void => {
-    if (category.behavior === 'sequential') {
-      onApplySequence(category)
-      return
-    }
-
-    activateCategory(category)
   }
 
   return (
@@ -82,28 +76,55 @@ export function HexContextMenu({
       <div className="context-menu__eyebrow">
         Choose character · {formatTableAddress(selectedAddress, mode)}
       </div>
-      {categories.map((category) => (
+      <div className="context-menu__categories">
         <button
-          key={category.id}
           type="button"
           role="menuitem"
-          aria-haspopup={category.behavior === 'picker' ? 'dialog' : undefined}
-          aria-expanded={
-            category.behavior === 'picker' ? activeCategoryId === category.id : undefined
-          }
-          title={
-            category.behavior === 'sequential'
-              ? `Fill sequentially from ${formatTableAddress(selectedAddress, mode)}`
-              : undefined
-          }
-          onClick={() => handleCategoryClick(category)}
-          onFocus={() => activateCategory(category)}
-          onPointerEnter={() => activateCategory(category)}
+          onClick={onEditValue}
+          onPointerEnter={() => setActiveCategoryId(null)}
         >
-          <span>{category.label}</span>
-          <span aria-hidden="true">{category.behavior === 'sequential' ? '↦' : '›'}</span>
+          Edit value…
         </button>
-      ))}
+        <button
+          type="button"
+          role="menuitem"
+          onClick={onClear}
+          onPointerEnter={() => setActiveCategoryId(null)}
+        >
+          Clear
+        </button>
+        <div role="separator" className="context-menu__separator" />
+        {categories.map((category, index) => (
+          <Fragment key={category.id}>
+            {category.group !== categories[index - 1]?.group ? (
+              <div className="context-menu__group-label">{category.group}</div>
+            ) : null}
+            <button
+              type="button"
+              role="menuitem"
+              aria-haspopup={category.behavior === 'sequential' ? undefined : 'dialog'}
+              aria-expanded={
+                category.behavior === 'sequential' ? undefined : activeCategoryId === category.id
+              }
+              title={
+                category.behavior === 'sequential'
+                  ? `Fill ${category.characters.length} cells from ${formatTableAddress(selectedAddress, mode)}`
+                  : undefined
+              }
+              onClick={() =>
+                category.behavior === 'sequential'
+                  ? onApplySequence(category)
+                  : activateCategory(category)
+              }
+              onFocus={() => activateCategory(category)}
+              onPointerEnter={() => activateCategory(category)}
+            >
+              <span>{category.label}</span>
+              <span aria-hidden="true">{category.behavior === 'sequential' ? '↦' : '›'}</span>
+            </button>
+          </Fragment>
+        ))}
+      </div>
 
       {activeCategory ? (
         <CharacterPicker

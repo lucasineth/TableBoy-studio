@@ -18,8 +18,8 @@ import {
   type TableMode
 } from '../../core/table/index.ts'
 import { characterCatalog } from '../../core/characters/CharacterCatalog.ts'
-import { applyCharacterSequence } from '../../core/characters/applyCharacterSequence.ts'
 import type { CharacterCategory, CharacterOption } from '../../core/characters/CharacterCategory.ts'
+import { applyCharacterSequence } from '../../core/characters/applyCharacterSequence.ts'
 import type { OpenedTableFile } from '../../shared/tableFileApi.ts'
 import { AppDialog, type AppDialogKind } from './components/AppDialog/AppDialog.tsx'
 import { CharacterInspector } from './components/CharacterInspector/CharacterInspector.tsx'
@@ -30,7 +30,6 @@ import { StatusBar } from './components/StatusBar/StatusBar.tsx'
 import { TableEditor } from './components/TableEditor/TableEditor.tsx'
 import { Toolbar } from './components/Toolbar/Toolbar.tsx'
 import {
-  createSampleDocument,
   formatTableDocumentErrors,
   parseTableDocument,
   serializeTableDocument,
@@ -52,10 +51,8 @@ interface NoticeState {
 const NOTICE_DURATION_MS = 3000
 
 export default function App(): React.JSX.Element {
-  const [state, dispatch] = useReducer(editorReducer, undefined, () =>
-    createEditorState(createSampleDocument(), 'example.tbl')
-  )
-  const [selectedAddress, setSelectedAddress] = useState(0xf1)
+  const [state, dispatch] = useReducer(editorReducer, undefined, () => createEditorState())
+  const [selectedAddress, setSelectedAddress] = useState(0)
   const [page, setPage] = useState(0)
   const [query, setQuery] = useState('')
   const [notice, setNotice] = useState<NoticeState | null>(null)
@@ -480,43 +477,35 @@ export default function App(): React.JSX.Element {
   const handleCharacterSequence = useCallback(
     (category: CharacterCategory): void => {
       if (!contextMenu) return
-
       const result = applyCharacterSequence(
         state.entries,
         contextMenu.address,
         category.characters,
         state.mode
       )
-
+      setContextMenu(null)
       if (!result.ok) {
         setNotice({
-          message: `${category.label} requires ${result.requiredCells} cells, but only ${result.availableCells} remain before ${state.mode === '8-bit' ? 'FF' : 'FFFF'}.`,
+          message: `${category.label} requires ${result.requiredCells} cells, but only ${result.availableCells} remain. Nothing was changed.`,
           persistent: false
         })
-        setContextMenu(null)
         return
       }
-
-      if (result.overwrittenAddresses.length > 0) {
-        const ranges = formatAddressRanges(result.overwrittenAddresses, state.mode)
-        const confirmed = window.confirm(
-          `As células ${ranges} já possuem valores.\nDeseja substituir as entradas existentes?`
+      if (
+        result.overwrittenAddresses.length > 0 &&
+        !window.confirm(
+          `Fill ${category.label} from ${formatTableAddress(result.startAddress, state.mode)} to ${formatTableAddress(result.endAddress, state.mode)}? This will replace ${result.overwrittenAddresses.length} existing entries.`
         )
-        if (!confirmed) {
-          setContextMenu(null)
-          return
-        }
-      }
-
+      )
+        return
       dispatch({ type: 'APPLY_ENTRIES', entries: result.entries })
-      setContextMenu(null)
     },
     [contextMenu, state.entries, state.mode]
   )
 
   return (
     <div
-      className={`app-shell${statusBarVisible ? '' : ' app-shell--without-status'}`}
+      className="app-shell"
       onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -550,22 +539,24 @@ export default function App(): React.JSX.Element {
         onShowShortcuts={() => setDialog('shortcuts')}
         onShowAbout={() => setDialog('about')}
       />
-      <Toolbar
-        canUndo={state.past.length > 0}
-        canRedo={state.future.length > 0}
-        query={query}
-        validationValid={validation.valid}
-        mode={state.mode}
-        canChangeMode={state.entries.length === 0}
-        onNew={handleNew}
-        onOpen={handleOpen}
-        onSave={handleSave}
-        onSearch={handleSearch}
-        onUndo={handleUndo}
-        onRedo={handleRedo}
-        onQueryChange={setQuery}
-        onModeChange={handleModeChange}
-      />
+      <div className="editor-toolbar-context">
+        <Toolbar
+          canUndo={state.past.length > 0}
+          canRedo={state.future.length > 0}
+          query={query}
+          validationValid={validation.valid}
+          mode={state.mode}
+          canChangeMode={state.entries.length === 0}
+          onNew={handleNew}
+          onOpen={handleOpen}
+          onSave={handleSave}
+          onSearch={handleSearch}
+          onUndo={handleUndo}
+          onRedo={handleRedo}
+          onQueryChange={setQuery}
+          onModeChange={handleModeChange}
+        />
+      </div>
 
       {notice ? (
         <div className="notice" role="status">
@@ -577,7 +568,7 @@ export default function App(): React.JSX.Element {
       ) : null}
 
       <main
-        className={`editor-workspace${inspectorVisible ? '' : ' editor-workspace--without-inspector'}`}
+        className={`workspace-view editor-workspace${inspectorVisible ? '' : ' editor-workspace--without-inspector'}`}
       >
         <TableEditor
           mode={state.mode}
@@ -599,7 +590,6 @@ export default function App(): React.JSX.Element {
           />
         ) : null}
       </main>
-
       {statusBarVisible ? (
         <StatusBar
           selectedAddress={selectedAddress}
@@ -619,43 +609,27 @@ export default function App(): React.JSX.Element {
           mode={state.mode}
           categories={characterCatalog}
           onClose={closeContextMenu}
-          onApplySequence={handleCharacterSequence}
+          onEditValue={() => {
+            const address = contextMenu.address
+            setContextMenu(null)
+            requestAnimationFrame(() => {
+              const cell = document.querySelector<HTMLInputElement>(
+                `[data-address="${formatTableAddress(address, state.mode)}"]`
+              )
+              cell?.focus()
+              cell?.select()
+            })
+          }}
+          onClear={() => {
+            handleValueChange(contextMenu.address, '')
+            setContextMenu(null)
+          }}
           onSelectCharacter={handleCharacterSelect}
+          onApplySequence={handleCharacterSequence}
         />
       ) : null}
 
       {dialog ? <AppDialog kind={dialog} onClose={closeDialog} /> : null}
     </div>
   )
-}
-
-function formatAddressRanges(addresses: readonly number[], mode: TableMode): string {
-  if (addresses.length === 0) return ''
-
-  const sortedAddresses = [...new Set(addresses)].sort((left, right) => left - right)
-  const ranges: string[] = []
-  let start = sortedAddresses[0]
-  let end = start
-
-  for (const address of sortedAddresses.slice(1)) {
-    if (address === end + 1) {
-      end = address
-      continue
-    }
-
-    ranges.push(
-      start === end
-        ? formatTableAddress(start, mode)
-        : `${formatTableAddress(start, mode)}-${formatTableAddress(end, mode)}`
-    )
-    start = address
-    end = address
-  }
-
-  ranges.push(
-    start === end
-      ? formatTableAddress(start, mode)
-      : `${formatTableAddress(start, mode)}-${formatTableAddress(end, mode)}`
-  )
-  return ranges.join(', ')
 }

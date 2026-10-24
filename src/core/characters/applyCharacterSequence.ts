@@ -4,22 +4,15 @@ import type { TableEntry } from '../table/TableEntry.ts'
 import { maxAddressForMode, type TableMode } from '../table/TableMode.ts'
 import type { CharacterOption } from './CharacterCategory.ts'
 
-export interface AppliedCharacterSequence {
-  ok: true
-  entries: TableEntry[]
-  startAddress: number
-  endAddress: number
-  overwrittenAddresses: number[]
-}
-
-export interface CharacterSequenceOverflow {
-  ok: false
-  reason: 'OVERFLOW'
-  availableCells: number
-  requiredCells: number
-}
-
-export type ApplyCharacterSequenceResult = AppliedCharacterSequence | CharacterSequenceOverflow
+export type ApplyCharacterSequenceResult =
+  | {
+      ok: true
+      entries: TableEntry[]
+      startAddress: number
+      endAddress: number
+      overwrittenAddresses: number[]
+    }
+  | { ok: false; availableCells: number; requiredCells: number }
 
 export function applyCharacterSequence(
   table: readonly TableEntry[],
@@ -28,27 +21,19 @@ export function applyCharacterSequence(
   mode: TableMode = '8-bit'
 ): ApplyCharacterSequenceResult {
   assertTableAddress(startAddress, mode)
-
   const availableCells = maxAddressForMode(mode) - startAddress + 1
   if (characters.length > availableCells) {
-    return {
-      ok: false,
-      reason: 'OVERFLOW',
-      availableCells,
-      requiredCells: characters.length
-    }
+    return { ok: false, availableCells, requiredCells: characters.length }
   }
 
   const entryMap = createTableEntryMap(table, mode)
   const overwrittenAddresses: number[] = []
   let entries = [...table]
-
   characters.forEach((character, index) => {
-    const targetAddress = startAddress + index
-    if (entryMap.has(targetAddress)) overwrittenAddresses.push(targetAddress)
-    entries = setTableValue(entries, targetAddress, character.value, mode)
+    const address = startAddress + index
+    if (entryMap.has(address)) overwrittenAddresses.push(address)
+    entries = setTableValue(entries, address, character.value, mode)
   })
-
   return {
     ok: true,
     entries,

@@ -1,166 +1,89 @@
 <p align="center">
-  <img src="build/icon.png" width="220" alt="TableBoy Studio">
+  <img src="build/icon.png" width="180" alt="TableBoy Studio">
 </p>
 
-<h1 align="center">TableBoy Studio</h1>
+# TableBoy Studio
 
-<p align="center">
-  Editor desktop moderno de tabelas de caracteres <code>.tbl</code> para ROM hacking.
-</p>
+Editor desktop de tabelas de caracteres `.tbl`, com matriz hexadecimal e suporte
+a tabelas de 8 e 16 bits. A versão 1.5.0 concentra o aplicativo na criação e edição
+de tabelas. O código do ROM Tools foi preservado em um arquivo separado.
 
-<p align="center">
-  <strong>Electron · React · TypeScript · Vite</strong>
-</p>
+## Recursos
 
-## Sobre o projeto
+- Criar, abrir, editar, validar e salvar tabelas `.tbl` em UTF-8.
+- Matriz 16 × 16; endereços `00–FF` em 8 bits e `0000–FFFF` em 16 bits.
+- Detecção do modo ao abrir e navegação por páginas em tabelas de 16 bits.
+- Caracteres Unicode, strings e tokens, editáveis na matriz ou no inspector.
+- Catálogo de caracteres latinos, PT-BR, símbolos e conjuntos japoneses.
+- Maiúsculas (A–Z), minúsculas (a–z) e números (0–9) preenchem automaticamente
+  a sequência inteira a partir da célula selecionada, em uma única ação Undo/Redo.
+- As demais categorias permitem escolher um caractere para a célula selecionada.
+- Busca por endereço hexadecimal ou valor da tabela, validação e estatísticas.
+- Undo/Redo, arrastar um arquivo `.tbl` para abrir e proteção de alterações ao
+  criar, abrir ou fechar documentos.
 
-O TableBoy Studio permite criar, abrir, editar, validar e salvar tabelas que
-associam endereços a caracteres, textos ou tokens especiais. O editor visual usa
-uma matriz hexadecimal 16×16 para tabelas 8-bit e páginas navegáveis para tabelas
-16-bit.
+O aplicativo começa com uma tabela vazia. Para criar uma tabela de 16 bits,
+selecione **Table Mode → 16-bit** enquanto a tabela estiver vazia. Digite uma
+página hexadecimal ou navegue pelas páginas presentes no documento.
 
-O projeto é inspirado conceitualmente no Table Manager 1.0 de Hyllian, mas possui
-implementação própria, interface original e arquitetura moderna.
+Para inserir um alfabeto ou os números, clique com o botão direito na célula
+inicial e escolha **Maiúsculas (A-Z)**, **Minúsculas (a-z)** ou **Números (0-9)**.
+Entradas existentes exigem confirmação antes da substituição. Se a sequência não
+couber até `FF` ou `FFFF`, nenhuma célula será alterada.
 
-## Recursos da versão 1.1
-
-- matriz hexadecimal 16×16 editável;
-- tabelas 8-bit (<code>00–FF</code>) e 16-bit (<code>0000–FFFF</code>);
-- detecção automática do modo ao abrir o arquivo;
-- navegação por páginas existentes ou por endereço hexadecimal;
-- criação, abertura, salvamento e Save As de arquivos <code>.tbl</code>;
-- Drag & Drop de arquivos <code>.tbl</code>;
-- suporte a Unicode, strings e tokens como <code>[PLAYER]</code>, <code>[LINE]</code> e <code>[END]</code>;
-- edição direta pela matriz ou pelo Character Inspector;
-- catálogo de caracteres PT-BR, Romaji, Hiragana e Katakana;
-- preenchimento sequencial de <code>A-Z</code>, <code>a-z</code> e <code>0-9</code>;
-- validação de linhas inválidas e chaves duplicadas;
-- histórico Undo/Redo;
-- busca por byte hexadecimal ou valor;
-- proteção contra perda de alterações em New, Open, Exit e fechamento da janela;
-- menus File, Edit, Table, Encoding, Tools, View e Help;
-- interface isolada do filesystem por preload, <code>contextBridge</code> e IPC tipado.
-
-## Formato <code>.tbl</code>
-
-Cada linha associa uma chave hexadecimal a um valor:
-
-```text
-41=A
-42=B
-43=C
-F1=Ã
-F2=Õ
-F4=ã
-F5=õ
-```
-
-Também podem existir tokens e sequências:
-
-```text
-F001=[PLAYER]
-F002=[RIVAL]
-```
-
-O core mantém caracteres Unicode e reconhece comentários iniciados por
-<code>#</code>, <code>;</code> ou <code>//</code>. O editor visual aceita documentos uniformes com chaves
-de um byte (8-bit) ou dois bytes (16-bit). Misturar as duas larguras no mesmo
-arquivo produz um erro controlado.
-
-## Arquitetura
-
-A lógica de tabelas é independente do Electron e do React:
-
-```text
-src/
-├── core/
-│   ├── characters/      # Catálogos e sequências de caracteres
-│   └── table/           # Parser, writer, validator e modelo
-├── main/
-│   └── ipc/             # Diálogos e acesso seguro ao filesystem
-├── preload/             # API mínima exposta pelo contextBridge
-├── renderer/
-│   └── src/
-│       ├── components/  # Interface React reutilizável
-│       ├── services/    # Integração entre documentos e core
-│       └── state/       # Estado e histórico do editor
-└── shared/              # Contratos compartilhados de IPC
-```
-
-Fluxo de arquivos:
-
-```text
-Renderer → Preload/contextBridge → IPC → Main Process → Filesystem
-```
-
-As configurações Electron mantêm <code>contextIsolation: true</code> e
-<code>nodeIntegration: false</code>. O renderer não recebe acesso direto ao Node.js,
-filesystem ou <code>ipcRenderer</code>.
+Arquivos misturando chaves de 8 e 16 bits, chaves maiores que dois bytes e
+entradas inválidas são recusados com uma mensagem. O editor não converte
+automaticamente arquivos ANSI/OEM ou Shift-JIS para UTF-8.
 
 ## Atalhos
 
-| Ação                      | Atalho                    |
-| ------------------------- | ------------------------- |
-| Nova tabela               | <code>Ctrl+N</code>       |
-| Abrir tabela              | <code>Ctrl+O</code>       |
-| Salvar                    | <code>Ctrl+S</code>       |
-| Salvar como               | <code>Ctrl+Shift+S</code> |
-| Desfazer                  | <code>Ctrl+Z</code>       |
-| Refazer                   | <code>Ctrl+Y</code>       |
-| Buscar                    | <code>Ctrl+F</code>       |
-| Limpar célula selecionada | <code>Delete</code>       |
-| Exibir atalhos            | <code>F1</code>           |
+| Ação                      | Atalho          |
+| ------------------------- | --------------- |
+| Nova tabela               | Ctrl+N          |
+| Abrir                     | Ctrl+O          |
+| Salvar                    | Ctrl+S          |
+| Salvar como               | Ctrl+Shift+S    |
+| Desfazer / refazer        | Ctrl+Z / Ctrl+Y |
+| Buscar na tabela          | Ctrl+F          |
+| Limpar célula selecionada | Delete          |
+| Ajuda de atalhos          | F1              |
 
-## Desenvolvimento
+## Desenvolvimento e empacotamento
 
-### Requisitos
+Requer Node.js com suporte a `--experimental-strip-types` e npm. A versão usada
+para validar a entrega está no [relatório de produção](docs/PRODUCTION_VALIDATION.md).
 
-- Node.js;
-- npm;
-- Windows, macOS ou Linux.
-
-### Instalação
-
-```bash
-git clone https://github.com/lucasineth/TableBoy-studio.git
-cd TableBoy-studio
-npm install
+```sh
+npm ci
 npm run dev
 ```
 
-### Validação
-
-```bash
+```sh
 npm run typecheck
 npm run lint
 npm test
 npm run build
-```
-
-### Empacotamento
-
-```bash
-npm run build:unpack
 npm run build:win
-npm run build:mac
-npm run build:linux
 ```
 
-Os artefatos são gerados em <code>dist/</code>.
+O instalador Windows e a pasta executável ficam em `dist/table-editor-1.5.0/`.
+O pacote inclui somente os bundles de produção, metadados e dependências de
+runtime; arquivos de desenvolvimento e o arquivo de backup ficam fora dele.
+Os comandos de macOS e Linux permanecem disponíveis, mas esta entrega é validada
+no Windows. Compilar um instalador não publica uma release.
 
-## Roadmap
+## ROM Tools arquivado
 
-- conversões OEM/ANSI e Windows-1252;
-- suporte dedicado a Shift-JIS;
-- ROM viewer e busca de textos em binários;
-- codificação e decodificação usando tabelas;
-- presets personalizados;
-- ferramentas para fontes e glyphs.
+O ZIP [rom-tools-text-search-1.4.14.zip](archives/rom-tools-text-search-1.4.14.zip)
+preserva o projeto integrado antes da separação: busca, Text Browser, assistente,
+worker/IPC, codecs, testes, benchmarks, documentação e `MEMORY.md` do Monkey-Moore.
+Inclui também as dependências locais de código do editor para permitir retomar o
+trabalho em um projeto separado. Não contém `node_modules`, `.git` ou instaladores.
 
-Esses recursos não fazem parte da versão 1.1.
+Veja [como verificar e restaurar](archives/README.md). O ZIP não é um segundo
+aplicativo pronto; ele preserva o código para um desenvolvimento independente.
 
 ## Créditos
 
-**Developed by Lucas Ineth**  
-© 2026 Lucas Ineth  
-Built for ROM hackers & retro enthusiasts.
+Desenvolvido por Lucas Ineth. Inspirado conceitualmente no Table Manager 1.0 de
+Hyllian, com implementação própria. Electron, React, TypeScript e Vite.
