@@ -72,17 +72,6 @@ runtime; arquivos de desenvolvimento e o arquivo de backup ficam fora dele.
 Os comandos de macOS e Linux permanecem disponíveis, mas esta entrega é validada
 no Windows. Compilar um instalador não publica uma release.
 
-## ROM Tools arquivado
-
-O ZIP [rom-tools-text-search-1.4.14.zip](archives/rom-tools-text-search-1.4.14.zip)
-preserva o projeto integrado antes da separação: busca, Text Browser, assistente,
-worker/IPC, codecs, testes, benchmarks, documentação e `MEMORY.md` do Monkey-Moore.
-Inclui também as dependências locais de código do editor para permitir retomar o
-trabalho em um projeto separado. Não contém `node_modules`, `.git` ou instaladores.
-
-Veja [como verificar e restaurar](archives/README.md). O ZIP não é um segundo
-aplicativo pronto; ele preserva o código para um desenvolvimento independente.
-
 ## Créditos
 
 Desenvolvido por Lucas Ineth. Inspirado conceitualmente no Table Manager 1.0 de
