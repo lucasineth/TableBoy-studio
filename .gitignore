@@ -9,3 +9,7 @@ resources/icon.png
 # Local archives and build artifacts
 /archives/
 /dist/
+
+# Local documentation and validation scripts
+/docs/
+/scripts/
