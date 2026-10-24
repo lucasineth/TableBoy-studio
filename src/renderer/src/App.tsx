@@ -28,10 +28,7 @@ import { MenuBar } from './components/MenuBar/MenuBar.tsx'
 import { StatusBar } from './components/StatusBar/StatusBar.tsx'
 import { TableEditor } from './components/TableEditor/TableEditor.tsx'
 import { Toolbar } from './components/Toolbar/Toolbar.tsx'
-import { RomSearchPanel } from './features/rom-search/RomSearchPanel.tsx'
-import { useRomSearch } from './features/rom-search/useRomSearch.ts'
 import {
-  createSampleDocument,
   formatTableDocumentErrors,
   parseTableDocument,
   serializeTableDocument,
@@ -50,15 +47,11 @@ interface NoticeState {
   persistent: boolean
 }
 
-type ActiveWorkspace = 'table-editor' | 'rom-search'
-
 const NOTICE_DURATION_MS = 3000
 
 export default function App(): React.JSX.Element {
-  const [state, dispatch] = useReducer(editorReducer, undefined, () =>
-    createEditorState(createSampleDocument(), 'example.tbl')
-  )
-  const [selectedAddress, setSelectedAddress] = useState(0xf1)
+  const [state, dispatch] = useReducer(editorReducer, undefined, () => createEditorState())
+  const [selectedAddress, setSelectedAddress] = useState(0)
   const [page, setPage] = useState(0)
   const [query, setQuery] = useState('')
   const [notice, setNotice] = useState<NoticeState | null>(null)
@@ -67,10 +60,7 @@ export default function App(): React.JSX.Element {
   const [inspectorVisible, setInspectorVisible] = useState(true)
   const [statusBarVisible, setStatusBarVisible] = useState(true)
   const [dialog, setDialog] = useState<AppDialogKind | null>(null)
-  const [activeWorkspace, setActiveWorkspace] = useState<ActiveWorkspace>('table-editor')
   const dragDepthRef = useRef(0)
-  const romSearch = useRomSearch()
-  const openRomDocument = romSearch.openDocument
 
   const entryMap = useMemo(
     () => createTableEntryMap(state.entries, state.mode),
@@ -340,17 +330,10 @@ export default function App(): React.JSX.Element {
   }, [entryMap.size, state.mode])
 
   const handleFocusSearch = useCallback((): void => {
-    const selector =
-      activeWorkspace === 'rom-search' ? '#rom-search-query' : '.toolbar__search input'
-    const searchInput = document.querySelector<HTMLInputElement>(selector)
+    const searchInput = document.querySelector<HTMLInputElement>('.toolbar__search input')
     searchInput?.focus()
     searchInput?.select()
-  }, [activeWorkspace])
-
-  const handleOpenRom = useCallback(async (): Promise<void> => {
-    setActiveWorkspace('rom-search')
-    await openRomDocument()
-  }, [openRomDocument])
+  }, [])
 
   const handleOpenCharacterCatalog = useCallback((): void => {
     setContextMenu({
@@ -490,11 +473,9 @@ export default function App(): React.JSX.Element {
     [contextMenu]
   )
 
-  const showStatusBar = statusBarVisible && activeWorkspace === 'table-editor'
-
   return (
     <div
-      className={`app-shell${showStatusBar ? '' : ' app-shell--without-status'}`}
+      className="app-shell"
       onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -512,7 +493,6 @@ export default function App(): React.JSX.Element {
         mode={state.mode}
         onNew={handleNew}
         onOpen={handleOpen}
-        onOpenRom={handleOpenRom}
         onSave={handleSave}
         onSaveAs={handleSaveAs}
         onExit={() => window.close()}
@@ -523,29 +503,30 @@ export default function App(): React.JSX.Element {
         onValidateTable={handleValidateTable}
         onShowStatistics={handleShowStatistics}
         onSearch={handleFocusSearch}
-        onOpenRomSearch={() => setActiveWorkspace('rom-search')}
         onOpenCharacterCatalog={handleOpenCharacterCatalog}
         onToggleInspector={() => setInspectorVisible((visible) => !visible)}
         onToggleStatusBar={() => setStatusBarVisible((visible) => !visible)}
         onShowShortcuts={() => setDialog('shortcuts')}
         onShowAbout={() => setDialog('about')}
       />
-      <Toolbar
-        canUndo={state.past.length > 0}
-        canRedo={state.future.length > 0}
-        query={query}
-        validationValid={validation.valid}
-        mode={state.mode}
-        canChangeMode={state.entries.length === 0}
-        onNew={handleNew}
-        onOpen={handleOpen}
-        onSave={handleSave}
-        onSearch={handleSearch}
-        onUndo={handleUndo}
-        onRedo={handleRedo}
-        onQueryChange={setQuery}
-        onModeChange={handleModeChange}
-      />
+      <div className="editor-toolbar-context">
+        <Toolbar
+          canUndo={state.past.length > 0}
+          canRedo={state.future.length > 0}
+          query={query}
+          validationValid={validation.valid}
+          mode={state.mode}
+          canChangeMode={state.entries.length === 0}
+          onNew={handleNew}
+          onOpen={handleOpen}
+          onSave={handleSave}
+          onSearch={handleSearch}
+          onUndo={handleUndo}
+          onRedo={handleRedo}
+          onQueryChange={setQuery}
+          onModeChange={handleModeChange}
+        />
+      </div>
 
       {notice ? (
         <div className="notice" role="status">
@@ -556,44 +537,30 @@ export default function App(): React.JSX.Element {
         </div>
       ) : null}
 
-      {activeWorkspace === 'table-editor' ? (
-        <main
-          className={`editor-workspace${inspectorVisible ? '' : ' editor-workspace--without-inspector'}`}
-        >
-          <TableEditor
-            mode={state.mode}
-            page={page}
-            availablePages={availablePages}
-            selectedAddress={selectedAddress}
-            values={values}
-            onPageChange={handlePageChange}
-            onSelect={setSelectedAddress}
-            onValueChange={handleValueChange}
-            onContextMenu={handleCellContextMenu}
-          />
-          {inspectorVisible ? (
-            <CharacterInspector
-              address={selectedAddress}
-              mode={state.mode}
-              value={selectedValue}
-              onValueChange={handleInspectorValueChange}
-            />
-          ) : null}
-        </main>
-      ) : (
-        <RomSearchPanel
-          state={romSearch.state}
-          tableEntries={state.entries}
-          onBack={() => setActiveWorkspace('table-editor')}
-          onOpenDocument={() => void romSearch.openDocument()}
-          onCloseDocument={() => void romSearch.closeDocument()}
-          onSearch={(request) => void romSearch.startSearch(request)}
-          onCancel={() => void romSearch.cancelActiveSearch()}
-          onSelectResult={romSearch.selectResult}
+      <main
+        className={`workspace-view editor-workspace${inspectorVisible ? '' : ' editor-workspace--without-inspector'}`}
+      >
+        <TableEditor
+          mode={state.mode}
+          page={page}
+          availablePages={availablePages}
+          selectedAddress={selectedAddress}
+          values={values}
+          onPageChange={handlePageChange}
+          onSelect={setSelectedAddress}
+          onValueChange={handleValueChange}
+          onContextMenu={handleCellContextMenu}
         />
-      )}
-
-      {showStatusBar ? (
+        {inspectorVisible ? (
+          <CharacterInspector
+            address={selectedAddress}
+            mode={state.mode}
+            value={selectedValue}
+            onValueChange={handleInspectorValueChange}
+          />
+        ) : null}
+      </main>
+      {statusBarVisible ? (
         <StatusBar
           selectedAddress={selectedAddress}
           mode={state.mode}

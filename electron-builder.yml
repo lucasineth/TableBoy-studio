@@ -2,17 +2,13 @@ appId: com.tableboy.studio
 productName: TableBoy Studio
 directories:
   buildResources: build
+  output: dist/table-editor-${version}
 extraResources:
   - from: build/icon.png
     to: icon.png
 files:
-  - '!**/.vscode/*'
-  - '!src/*'
-  - '!electron.vite.config.{js,ts,mjs,cjs}'
-  - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
-  - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
-asarUnpack:
-  - resources/**
+  - out/**/*
+  - package.json
 win:
   executableName: TableBoyStudio
   icon: icon.ico

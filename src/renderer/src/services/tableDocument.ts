@@ -9,8 +9,6 @@ import {
   type TableValidationResult
 } from '../../../core/table/index.ts'
 
-const SAMPLE_TABLE = ['41=A', '42=B', '43=C', 'F1=Ã', 'F2=Õ', 'F4=ã', 'F5=õ'].join('\n')
-
 const parser = new TableParser()
 const writer = new TableWriter()
 const validator = new TableValidator()
@@ -24,11 +22,6 @@ export interface TableDocumentError {
   line?: number
   content?: string
   message: string
-}
-
-export function createSampleDocument(): TableDocument {
-  const entries = parser.parse(SAMPLE_TABLE).entries
-  return { mode: '8-bit', entries: cloneEntries(entries) }
 }
 
 export function parseTableDocument(source: string): ParsedTableDocumentResult {
@@ -57,10 +50,6 @@ export function formatTableDocumentErrors(errors: readonly TableDocumentError[])
       return `${location}${error.message}${content}`
     })
     .join('\n')
-}
-
-function cloneEntries(entries: readonly TableEntry[]): TableEntry[] {
-  return entries.map((entry) => ({ ...entry, key: [...entry.key] }))
 }
 
 function toDocumentError(error: TableParseError): TableDocumentError {

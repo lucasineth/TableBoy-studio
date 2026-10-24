@@ -14,7 +14,6 @@ interface MenuBarProps {
   mode: TableMode
   onNew: () => void
   onOpen: () => void
-  onOpenRom: () => void
   onSave: () => void
   onSaveAs: () => void
   onExit: () => void
@@ -25,7 +24,6 @@ interface MenuBarProps {
   onValidateTable: () => void
   onShowStatistics: () => void
   onSearch: () => void
-  onOpenRomSearch: () => void
   onOpenCharacterCatalog: () => void
   onToggleInspector: () => void
   onToggleStatusBar: () => void
@@ -59,7 +57,6 @@ export function MenuBar({
   mode,
   onNew,
   onOpen,
-  onOpenRom,
   onSave,
   onSaveAs,
   onExit,
@@ -70,7 +67,6 @@ export function MenuBar({
   onValidateTable,
   onShowStatistics,
   onSearch,
-  onOpenRomSearch,
   onOpenCharacterCatalog,
   onToggleInspector,
   onToggleStatusBar,
@@ -112,7 +108,6 @@ export function MenuBar({
           disabled: !canSave,
           onSelect: onSaveAs
         },
-        { label: 'Open ROM / Binary...', separatorBefore: true, onSelect: onOpenRom },
         { label: 'Exit', separatorBefore: true, onSelect: onExit }
       ]
     },
@@ -151,9 +146,7 @@ export function MenuBar({
       label: 'Encoding',
       items: [
         { label: `Custom ${mode}`, checked: true, disabled: true },
-        { label: 'UTF-8 .tbl Files', checked: true, disabled: true },
-        { label: 'ANSI / OEM', disabled: true, separatorBefore: true },
-        { label: 'Shift-JIS', disabled: true }
+        { label: 'UTF-8 .tbl Files', checked: true, disabled: true }
       ]
     },
     {
@@ -161,12 +154,7 @@ export function MenuBar({
       label: 'Tools',
       items: [
         { label: 'Search Table', shortcut: 'Ctrl+F', onSelect: onSearch },
-        { label: 'Character Catalog…', onSelect: onOpenCharacterCatalog },
-        {
-          label: 'ROM Tools: Text Search...',
-          separatorBefore: true,
-          onSelect: onOpenRomSearch
-        }
+        { label: 'Character Catalog…', onSelect: onOpenCharacterCatalog }
       ]
     },
     {
