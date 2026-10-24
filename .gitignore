@@ -5,3 +5,7 @@ resources/icon.png
 .DS_Store
 .eslintcache
 *.log*
+
+# Local archives and build artifacts
+/archives/
+/dist/
